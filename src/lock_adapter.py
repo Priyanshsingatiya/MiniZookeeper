@@ -13,12 +13,20 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 # Import the core locking functions from our lock_manager
-from lock_manager import (
-    acquire_lock as core_acquire,
-    release_lock as core_release,
-    get_lock_status as core_status,
-    get_all_active_locks as core_list_active
-)
+try:
+    from lock_manager import (
+        acquire_lock as core_acquire,
+        release_lock as core_release,
+        get_lock_status as core_status,
+        get_all_active_locks as core_list_active
+    )
+except ImportError:
+    from src.lock_manager import (
+        acquire_lock as core_acquire,
+        release_lock as core_release,
+        get_lock_status as core_status,
+        get_all_active_locks as core_list_active
+    )
 
 # Optional FastAPI integration for the web dashboard and REST API
 try:
@@ -159,5 +167,18 @@ if FASTAPI_AVAILABLE:
     def endpoint_list_locks():
         """API operation to list all active locks for web dashboard."""
         return api_list_locks()
+
+    # Mount Backend B's analytics & telemetry router into the unified FastAPI app
+    try:
+        from analysis import analytics_router
+        if analytics_router:
+            app.include_router(analytics_router)
+    except ImportError:
+        try:
+            from src.analysis import analytics_router
+            if analytics_router:
+                app.include_router(analytics_router)
+        except ImportError:
+            pass
 else:
     app = None
