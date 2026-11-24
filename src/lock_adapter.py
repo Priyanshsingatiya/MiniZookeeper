@@ -199,5 +199,18 @@ if FASTAPI_AVAILABLE:
     def endpoint_list_locks():
         """API operation to list all active locks for web dashboard."""
         return api_list_locks()
+
+    # Mount Backend B's analytics & telemetry router into the unified FastAPI app
+    try:
+        from analysis import analytics_router
+        if analytics_router:
+            app.include_router(analytics_router)
+    except ImportError:
+        try:
+            from src.analysis import analytics_router
+            if analytics_router:
+                app.include_router(analytics_router)
+        except ImportError:
+            pass
 else:
     app = None
