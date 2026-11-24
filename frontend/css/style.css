@@ -258,6 +258,14 @@ body {
 /* --------------------------------------------------------------------------
    6. Cards & Containers
    -------------------------------------------------------------------------- */
+.upload-card {
+  border-left: 4px solid var(--info-color);
+}
+
+.workspace-card {
+  border-left: 4px solid var(--primary-color);
+}
+
 .management-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

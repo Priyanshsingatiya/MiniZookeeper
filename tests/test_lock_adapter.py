@@ -149,6 +149,82 @@ class TestLockAdapter(unittest.TestCase):
         self.assertEqual(resp_js.status_code, 200)
         self.assertIn("handleAcquireLock", resp_js.text)
 
+    def test_resource_file_upload_and_lock_protected_editing(self):
+        """Verify uploading resource files and editing them under lock protection."""
+        if not FASTAPI_AVAILABLE:
+            self.skipTest("FastAPI not available")
+
+        client = TestClient(app)
+        test_filename = "test_inventory.csv"
+        initial_content = b"item_id,name,stock\n1,laptop,10\n"
+
+        # 1. Upload resource file
+        upload_resp = client.post(
+            "/api/resources/upload",
+            files={"file": (test_filename, initial_content, "text/csv")}
+        )
+        self.assertEqual(upload_resp.status_code, 200)
+        self.assertTrue(upload_resp.json()["success"])
+
+        # 2. Verify file is in resource list
+        list_resp = client.get("/api/resources")
+        self.assertEqual(list_resp.status_code, 200)
+        names = [r["filename"] for r in list_resp.json()["resources"]]
+        self.assertIn(test_filename, names)
+
+        # 3. Try to save changes WITHOUT holding the lock -> Must be DENIED!
+        unauthorized_save = client.post(
+            f"/api/resources/{test_filename}/save",
+            json={
+                "content": "item_id,name,stock\n1,laptop,999\n",
+                "client_id": "hacker_client",
+                "lock_handle": "fake_handle"
+            }
+        )
+        self.assertEqual(unauthorized_save.status_code, 200)
+        self.assertFalse(unauthorized_save.json()["success"])
+        self.assertIn("Access Denied", unauthorized_save.json()["message"])
+
+        # 4. Legitimate client acquires lock on test_inventory.csv
+        acq_resp = client.post(
+            "/api/lock/acquire",
+            json={
+                "resource_name": test_filename,
+                "client_id": "authorized_manager",
+                "timeout_seconds": 0.0
+            }
+        )
+        self.assertTrue(acq_resp.json()["success"])
+        lock_handle = acq_resp.json()["lock_handle"]
+
+        # 5. Authorized client modifies file while holding the lock -> Must SUCCEED!
+        updated_content = "item_id,name,stock\n1,laptop,9\n2,mouse,50\n"
+        authorized_save = client.post(
+            f"/api/resources/{test_filename}/save",
+            json={
+                "content": updated_content,
+                "client_id": "authorized_manager",
+                "lock_handle": lock_handle
+            }
+        )
+        self.assertTrue(authorized_save.json()["success"])
+
+        # 6. Verify content was updated on disk
+        content_resp = client.get(f"/api/resources/{test_filename}/content")
+        self.assertEqual(content_resp.status_code, 200)
+        self.assertEqual(content_resp.json()["content"], updated_content)
+
+        # 7. Release lock
+        rel_resp = client.post(
+            "/api/lock/release",
+            json={
+                "resource_name": test_filename,
+                "client_id": "authorized_manager",
+                "lock_handle": lock_handle
+            }
+        )
+        self.assertTrue(rel_resp.json()["success"])
+
 
 if __name__ == "__main__":
     unittest.main()

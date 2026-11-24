@@ -78,6 +78,27 @@
     <!-- ===================================================================
          4. RESOURCE MANAGEMENT CONSOLE (ACQUIRE & RELEASE FORMS)
          =================================================================== -->
+    <!-- Company File Resource Upload Card -->
+    <section class="card upload-card">
+      <div class="card-header-flex">
+        <div>
+          <h2 class="card-title">📁 Company Resource Files</h2>
+          <span class="badge badge-info">File Repository</span>
+        </div>
+      </div>
+      <p class="card-subtitle">Upload shared files (e.g. inventory spreadsheets, database files, configs) to coordinate access via Mini ZooKeeper locks.</p>
+      
+      <div class="inspector-form">
+        <input 
+          type="file" 
+          id="upload-file-input" 
+          class="form-input" 
+          style="padding: 0.45rem;"
+        >
+        <button id="upload-file-btn" class="btn btn-primary" type="button">📤 Upload File as Resource</button>
+      </div>
+    </section>
+
     <section class="management-grid">
 
       <!-- Form Card 1: Acquire Lock -->
@@ -90,15 +111,23 @@
 
         <form id="acquire-lock-form">
           <div class="form-group">
+            <label for="acquire-resource-select" class="form-label">Select Uploaded Resource File</label>
+            <select id="acquire-resource-select" class="form-input">
+              <option value="">-- Choose an uploaded file (or type custom below) --</option>
+            </select>
+            <span class="form-hint">Selecting a file sets the resource name automatically.</span>
+          </div>
+
+          <div class="form-group">
             <label for="acquire-resource-name" class="form-label">Resource Name</label>
             <input 
               type="text" 
               id="acquire-resource-name" 
               class="form-input" 
-              placeholder="e.g. flight_seat_12A" 
+              placeholder="e.g. inventory.csv or flight_seat_12A" 
               required
             >
-            <span class="form-hint">Only letters, numbers, hyphens, and underscores.</span>
+            <span class="form-hint">Only letters, numbers, hyphens, underscores, and dots.</span>
           </div>
 
           <div class="form-group">
@@ -147,7 +176,7 @@
               type="text" 
               id="release-resource-name" 
               class="form-input" 
-              placeholder="e.g. flight_seat_12A" 
+              placeholder="e.g. inventory.csv or flight_seat_12A" 
               required
             >
           </div>
@@ -181,6 +210,40 @@
         </form>
       </div>
 
+    </section>
+
+    <!-- ===================================================================
+         4B. WORK ON LOCKED RESOURCE (FILE WORKSPACE)
+         =================================================================== -->
+    <section class="card workspace-card">
+      <div class="card-header-flex">
+        <div>
+          <h2 class="card-title">🛠️ Work on Resource (Lock-Protected Workspace)</h2>
+          <span class="badge badge-neutral" id="workspace-lock-badge">Status: Check Lock</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button id="workspace-load-btn" class="btn btn-sm btn-outline" type="button">🔄 Load File Content</button>
+          <button id="workspace-save-btn" class="btn btn-sm btn-primary" type="button">💾 Save Changes (Hold Lock)</button>
+        </div>
+      </div>
+      <p class="card-subtitle">
+        Mutual Exclusion Guarantee: You can view any file, but saving changes strictly requires holding the active OS lock and secret handle!
+      </p>
+
+      <div class="form-group">
+        <label for="workspace-file-select" class="form-label">Active Resource to Work On:</label>
+        <select id="workspace-file-select" class="form-input" style="margin-bottom: 0.75rem;">
+          <option value="">-- Select a resource file to view/work on --</option>
+        </select>
+        <textarea 
+          id="workspace-textarea" 
+          class="form-input" 
+          rows="8" 
+          style="font-family: monospace; font-size: 0.9rem;"
+          placeholder="Select an uploaded file above and acquire its lock to safely edit and save changes..."
+        ></textarea>
+        <span class="form-hint" id="workspace-hint">Changes are verified by the backend against the active OS lock.</span>
+      </div>
     </section>
 
     <!-- ===================================================================

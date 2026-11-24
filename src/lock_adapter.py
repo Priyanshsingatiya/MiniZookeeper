@@ -12,25 +12,35 @@ Guarantees:
 from typing import Optional
 from pydantic import BaseModel, Field
 
+# Directory where uploaded shared resource files are kept
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BASE_DIR, "..", "uploaded_resources")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 # Import the core locking functions from our lock_manager
 try:
     from lock_manager import (
         acquire_lock as core_acquire,
         release_lock as core_release,
         get_lock_status as core_status,
-        get_all_active_locks as core_list_active
+        get_all_active_locks as core_list_active,
+        validate_resource_name,
+        HELD_LOCKS
     )
 except ImportError:
     from src.lock_manager import (
         acquire_lock as core_acquire,
         release_lock as core_release,
         get_lock_status as core_status,
-        get_all_active_locks as core_list_active
+        get_all_active_locks as core_list_active,
+        validate_resource_name,
+        HELD_LOCKS
     )
 
 # Optional FastAPI integration for the web dashboard and REST API
 try:
-    from fastapi import FastAPI, Query
+    from fastapi import FastAPI, Query, File, UploadFile, HTTPException
     from fastapi.staticfiles import StaticFiles
     from pathlib import Path
     FASTAPI_AVAILABLE = True
@@ -38,6 +48,9 @@ except ImportError:
     FastAPI = None
     StaticFiles = None
     Path = None
+    File = None
+    UploadFile = None
+    HTTPException = None
     FASTAPI_AVAILABLE = False
 
 
@@ -127,6 +140,12 @@ class ReleaseRequest(BaseModel):
     lock_handle: str = Field(..., description="The secret lock handle received during acquisition")
 
 
+class SaveResourceRequest(BaseModel):
+    content: str = Field(..., description="Updated text content of the file")
+    client_id: str = Field(..., description="Identity of client holding the lock")
+    lock_handle: str = Field(..., description="Secret lock handle required to edit")
+
+
 # Create FastAPI application instance
 if FASTAPI_AVAILABLE:
     app = FastAPI(
@@ -203,6 +222,118 @@ if FASTAPI_AVAILABLE:
     def endpoint_list_locks():
         """API operation to list all active locks for web dashboard."""
         return api_list_locks()
+
+    # -------------------------------------------------------------------------
+    # Uploaded Shared Resource Files Endpoints
+    # -------------------------------------------------------------------------
+
+    @app.post("/api/resources/upload")
+    async def endpoint_upload_resource(file: UploadFile = File(...)):
+        """Uploads a file to act as a shared resource in the lock system."""
+        safe_name = os.path.basename(file.filename).strip()
+        is_valid, err = validate_resource_name(safe_name)
+        if not is_valid:
+            safe_name = "".join(c if (c.isalnum() or c in ("_", "-", ".")) else "_" for c in safe_name)
+            if not safe_name:
+                safe_name = "uploaded_resource.txt"
+
+        dest_path = os.path.join(UPLOAD_DIR, safe_name)
+        content_bytes = await file.read()
+        with open(dest_path, "wb") as f:
+            f.write(content_bytes)
+
+        return {
+            "success": True,
+            "filename": safe_name,
+            "size_bytes": len(content_bytes),
+            "message": f"Resource file '{safe_name}' uploaded successfully."
+        }
+
+    @app.get("/api/resources")
+    def endpoint_list_resources():
+        """Lists all uploaded shared resource files and their current lock states."""
+        files = []
+        if os.path.exists(UPLOAD_DIR):
+            for name in sorted(os.listdir(UPLOAD_DIR)):
+                full_path = os.path.join(UPLOAD_DIR, name)
+                if os.path.isfile(full_path):
+                    status = core_status(name)
+                    files.append({
+                        "filename": name,
+                        "size_bytes": os.path.getsize(full_path),
+                        "is_locked": status["is_locked"],
+                        "owner": status["owner"]
+                    })
+        return {"resources": files, "count": len(files)}
+
+    @app.get("/api/resources/{filename}/content")
+    def endpoint_get_resource_content(filename: str):
+        """Reads the content of an uploaded resource file for preview or editing."""
+        safe_name = os.path.basename(filename)
+        file_path = os.path.join(UPLOAD_DIR, safe_name)
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="Resource file not found.")
+
+        try:
+            with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+                text_content = f.read()
+        except Exception as e:
+            text_content = f"Error reading file: {str(e)}"
+
+        status = core_status(safe_name)
+        return {
+            "filename": safe_name,
+            "content": text_content,
+            "is_locked": status["is_locked"],
+            "owner": status["owner"]
+        }
+
+    @app.post("/api/resources/{filename}/save")
+    def endpoint_save_resource_content(filename: str, payload: SaveResourceRequest):
+        """
+        Saves changes to an uploaded resource file.
+        SECURITY: Requires that the client holds the active OS lock handle!
+        """
+        safe_name = os.path.basename(filename)
+        file_path = os.path.join(UPLOAD_DIR, safe_name)
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="Resource file not found.")
+
+        # Check if resource is currently held by this client
+        if safe_name not in HELD_LOCKS:
+            return {
+                "success": False,
+                "message": f"Access Denied: Resource '{safe_name}' is not currently locked. You must acquire the lock before modifying it."
+            }
+
+        current_lock = HELD_LOCKS[safe_name]
+        if current_lock["client_id"] != payload.client_id:
+            return {
+                "success": False,
+                "message": f"Access Denied: Client '{payload.client_id}' does not own the lock on '{safe_name}'."
+            }
+
+        if current_lock["lock_handle"] != payload.lock_handle:
+            return {
+                "success": False,
+                "message": "Access Denied: Invalid lock handle provided. Only the lock owner can save changes."
+            }
+
+        # Authorized! Write changes to disk safely under lock protection
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(payload.content)
+            return {
+                "success": True,
+                "filename": safe_name,
+                "size_bytes": os.path.getsize(file_path),
+                "message": f"Changes saved successfully to '{safe_name}' under active mutual exclusion lock!"
+            }
+        except Exception as err:
+            return {
+                "success": False,
+                "message": f"Failed to save file: {str(err)}"
+            }
 
     # Mount Backend B's analytics & telemetry router into the unified FastAPI app
     try:

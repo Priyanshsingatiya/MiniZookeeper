@@ -5,7 +5,8 @@
  * Features:
  * - Simple vanilla JavaScript (no complex frameworks).
  * - Real-time polling via setInterval (every 3 seconds).
- * - Shows free vs locked resources, ownership, waiting states, and timeouts.
+ * - File Resource Upload & Selection: Upload shared company files, select them from dropdowns.
+ * - Lock-Protected Workspace: View file content; saving strictly requires holding the active OS lock.
  * - Robust error handling (never fake backend success).
  */
 
@@ -18,11 +19,6 @@ let pollingTimerId = null;
 // 1. Alert Banner & Activity Feed Functions
 // ============================================================================
 
-/**
- * Displays a dismissible colored message banner at the top of the dashboard.
- * @param {string} message - The text to display.
- * @param {string} type - 'success', 'danger', 'warning', or 'info'.
- */
 function showAlert(message, type = "info") {
   const alertBanner = document.getElementById("alert-banner");
   const alertMessage = document.getElementById("alert-message");
@@ -40,9 +36,6 @@ function showAlert(message, type = "info") {
   alertBanner.className = `alert-banner alert-${type}`;
 }
 
-/**
- * Hides the alert banner.
- */
 function hideAlert() {
   const alertBanner = document.getElementById("alert-banner");
   if (alertBanner) {
@@ -50,11 +43,6 @@ function hideAlert() {
   }
 }
 
-/**
- * Adds an entry to the "Recent Activity Feed".
- * @param {string} text - Description of the activity.
- * @param {string} badgeType - 'success', 'danger', 'warning', 'info', or 'neutral'.
- */
 function logActivity(text, badgeType = "info") {
   const activityList = document.getElementById("activity-list");
   if (!activityList) return;
@@ -73,23 +61,236 @@ function logActivity(text, badgeType = "info") {
   listItem.appendChild(badge);
   listItem.appendChild(textSpan);
 
-  // Prepend to top of activity list
   activityList.insertBefore(listItem, activityList.firstChild);
 
-  // Keep max 10 items
   while (activityList.children.length > 10) {
     activityList.removeChild(activityList.lastChild);
   }
 }
 
 // ============================================================================
-// 2. Lock Acquisition Handler (Phase 3, 4, 5)
+// 2. Resource File Upload & Management
 // ============================================================================
 
 /**
- * Handles the Acquire Lock form submission.
- * @param {Event} event - The form submission event.
+ * Uploads a file to act as a shared resource in Mini ZooKeeper.
  */
+function handleUploadFile() {
+  const fileInput = document.getElementById("upload-file-input");
+  const uploadBtn = document.getElementById("upload-file-btn");
+
+  if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+    showAlert("Please select a file to upload as a shared resource.", "warning");
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const formData = new FormData();
+  formData.append("file", file);
+
+  uploadBtn.disabled = true;
+  uploadBtn.textContent = "⏳ Uploading...";
+
+  fetch(`${API_BASE_URL}/api/resources/upload`, {
+    method: "POST",
+    body: formData
+  })
+    .then(async function(response) {
+      if (!response.ok) throw new Error("Upload failed with status " + response.status);
+      return response.json();
+    })
+    .then(function(data) {
+      if (data.success) {
+        showAlert(`File resource '${data.filename}' uploaded successfully (${data.size_bytes} bytes)!`, "success");
+        logActivity(`UPLOAD: New resource file '${data.filename}' available`, "success");
+
+        fileInput.value = "";
+        // Refresh dropdowns and automatically select this uploaded file
+        loadResourceFiles(data.filename);
+      } else {
+        showAlert(`Upload failed: ${data.message}`, "danger");
+      }
+    })
+    .catch(function(error) {
+      showAlert(`Upload error: ${error.message}`, "danger");
+    })
+    .finally(function() {
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = "📤 Upload File as Resource";
+    });
+}
+
+/**
+ * Loads the list of uploaded resource files and populates dropdown selects.
+ * @param {string|null} selectFilename - Optional filename to auto-select.
+ */
+function loadResourceFiles(selectFilename = null) {
+  fetch(`${API_BASE_URL}/api/resources`)
+    .then(function(response) {
+      if (!response.ok) return null;
+      return response.json();
+    })
+    .then(function(data) {
+      if (!data || !data.resources) return;
+
+      const acquireSelect = document.getElementById("acquire-resource-select");
+      const workspaceSelect = document.getElementById("workspace-file-select");
+
+      // Remember current selections
+      const currentAcquireVal = selectFilename || (acquireSelect ? acquireSelect.value : "");
+      const currentWorkspaceVal = selectFilename || (workspaceSelect ? workspaceSelect.value : "");
+
+      // Rebuild acquire dropdown
+      if (acquireSelect) {
+        acquireSelect.innerHTML = '<option value="">-- Choose an uploaded file (or type custom below) --</option>';
+        data.resources.forEach(function(r) {
+          const opt = document.createElement("option");
+          opt.value = r.filename;
+          const statusText = r.is_locked ? `[LOCKED by ${r.owner}]` : "[FREE]";
+          opt.textContent = `📄 ${r.filename} (${r.size_bytes} bytes) ${statusText}`;
+          acquireSelect.appendChild(opt);
+        });
+        if (currentAcquireVal) acquireSelect.value = currentAcquireVal;
+      }
+
+      // Rebuild workspace dropdown
+      if (workspaceSelect) {
+        workspaceSelect.innerHTML = '<option value="">-- Select a resource file to view/work on --</option>';
+        data.resources.forEach(function(r) {
+          const opt = document.createElement("option");
+          opt.value = r.filename;
+          const statusText = r.is_locked ? `[LOCKED by ${r.owner}]` : "[FREE]";
+          opt.textContent = `📄 ${r.filename} ${statusText}`;
+          workspaceSelect.appendChild(opt);
+        });
+        if (currentWorkspaceVal) {
+          workspaceSelect.value = currentWorkspaceVal;
+        }
+      }
+    })
+    .catch(function(err) {
+      console.warn("Could not load resource files:", err);
+    });
+}
+
+// ============================================================================
+// 3. Lock-Protected Workspace (Work on Resource)
+// ============================================================================
+
+/**
+ * Loads file content into the workspace textarea.
+ */
+function loadWorkspaceFileContent() {
+  const select = document.getElementById("workspace-file-select");
+  const textarea = document.getElementById("workspace-textarea");
+  const lockBadge = document.getElementById("workspace-lock-badge");
+  const hint = document.getElementById("workspace-hint");
+
+  if (!select || !select.value) {
+    showAlert("Please select a resource file to load from the dropdown.", "warning");
+    return;
+  }
+
+  const filename = select.value;
+  textarea.value = "⏳ Loading file content from backend...";
+
+  fetch(`${API_BASE_URL}/api/resources/${encodeURIComponent(filename)}/content`)
+    .then(async function(response) {
+      if (!response.ok) throw new Error("Could not load file content: HTTP " + response.status);
+      return response.json();
+    })
+    .then(function(data) {
+      textarea.value = data.content || "";
+
+      if (data.is_locked) {
+        lockBadge.className = "badge badge-locked";
+        lockBadge.textContent = `LOCKED by: ${data.owner}`;
+        hint.textContent = `Resource is held by '${data.owner}'. Only the owner with the valid handle can save changes.`;
+      } else {
+        lockBadge.className = "badge badge-free";
+        lockBadge.textContent = "FREE (Unlocked)";
+        hint.textContent = "Resource is currently unlocked. Acquire the lock to edit and save changes.";
+      }
+      logActivity(`VIEW: Loaded file content for '${filename}'`, "info");
+    })
+    .catch(function(err) {
+      textarea.value = `Error loading file: ${err.message}`;
+      showAlert(err.message, "danger");
+    });
+}
+
+/**
+ * Saves changes to the resource file. STRICTLY requires active lock handle!
+ */
+function handleSaveWorkspaceFile() {
+  const select = document.getElementById("workspace-file-select");
+  const textarea = document.getElementById("workspace-textarea");
+  const saveBtn = document.getElementById("workspace-save-btn");
+
+  const releaseClientInput = document.getElementById("release-client-id");
+  const releaseHandleInput = document.getElementById("release-lock-handle");
+
+  if (!select || !select.value) {
+    showAlert("Please select a resource file to save.", "warning");
+    return;
+  }
+
+  const filename = select.value;
+  const content = textarea.value;
+  const clientId = releaseClientInput.value.trim();
+  const lockHandle = releaseHandleInput.value.trim();
+
+  if (!clientId || !lockHandle) {
+    showAlert("Access Denied: You must acquire the lock on this file first (Client ID and Lock Handle required to save).", "danger");
+    logActivity(`DENIED: Save attempt on '${filename}' blocked (no lock credentials)`, "danger");
+    return;
+  }
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = "⏳ Verifying Lock & Saving...";
+
+  const payload = {
+    content: content,
+    client_id: clientId,
+    lock_handle: lockHandle
+  };
+
+  fetch(`${API_BASE_URL}/api/resources/${encodeURIComponent(filename)}/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+    .then(async function(response) {
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        const detail = (data && data.detail) ? data.detail : `HTTP error ${response.status}`;
+        throw new Error(detail);
+      }
+      return data;
+    })
+    .then(function(data) {
+      if (data.success) {
+        showAlert(`Saved successfully! File '${filename}' updated under active lock protection.`, "success");
+        logActivity(`MODIFY: '${clientId}' updated '${filename}' under active lock`, "success");
+        loadResourceFiles();
+      } else {
+        showAlert(data.message, "danger");
+        logActivity(`BLOCKED: Save on '${filename}' failed (${data.message})`, "danger");
+      }
+    })
+    .catch(function(err) {
+      showAlert(`Save failed: ${err.message}`, "danger");
+    })
+    .finally(function() {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "💾 Save Changes (Hold Lock)";
+    });
+}
+
+// ============================================================================
+// 4. Lock Acquisition Handler (Connected to POST /api/lock/acquire)
+// ============================================================================
+
 function handleAcquireLock(event) {
   event.preventDefault();
 
@@ -103,13 +304,11 @@ function handleAcquireLock(event) {
   const clientId = clientInput.value.trim();
   const timeoutSeconds = parseFloat(timeoutInput.value) || 0.0;
 
-  // Validation
   if (!resourceName || !clientId) {
     showAlert("Please enter both Resource Name and Client ID.", "warning");
     return;
   }
 
-  // Visual feedback: waiting state
   submitBtn.disabled = true;
   if (timeoutSeconds > 0) {
     btnText.textContent = `⏳ Waiting for lock (up to ${timeoutSeconds}s)...`;
@@ -140,7 +339,6 @@ function handleAcquireLock(event) {
     })
     .then(function(data) {
       if (data.success) {
-        // Lock acquired successfully!
         showAlert(`Lock acquired successfully on '${resourceName}'! Handle: ${data.lock_handle}`, "success");
         logActivity(`ACQUIRE: '${clientId}' locked '${resourceName}' (Handle: ${data.lock_handle.substring(0, 12)}...)`, "success");
 
@@ -149,11 +347,17 @@ function handleAcquireLock(event) {
         document.getElementById("release-client-id").value = clientId;
         document.getElementById("release-lock-handle").value = data.lock_handle;
 
-        // Immediately refresh active locks table and stats
+        // Automatically set workspace file dropdown to this resource and load content
+        const wsSelect = document.getElementById("workspace-file-select");
+        if (wsSelect) {
+          wsSelect.value = resourceName;
+          loadWorkspaceFileContent();
+        }
+
         loadActiveLocks();
         loadSystemSummary();
+        loadResourceFiles();
       } else {
-        // Did not acquire lock (busy or timed out)
         if (data.message && data.message.includes("timed out")) {
           showAlert(`Request timed out: Lock on '${resourceName}' was not released in time.`, "danger");
           logActivity(`TIMEOUT: '${clientId}' timed out waiting for '${resourceName}'`, "danger");
@@ -172,20 +376,15 @@ function handleAcquireLock(event) {
       logActivity(`ERROR: Could not reach backend (${error.message})`, "danger");
     })
     .finally(function() {
-      // Re-enable button
       submitBtn.disabled = false;
       btnText.textContent = "🔒 Request Lock";
     });
 }
 
 // ============================================================================
-// 3. Lock Release Handler (Connected to POST /api/lock/release)
+// 5. Lock Release Handler (Connected to POST /api/lock/release)
 // ============================================================================
 
-/**
- * Handles the Release Lock form submission.
- * @param {Event} event - The form submission event.
- */
 function handleReleaseLock(event) {
   event.preventDefault();
 
@@ -231,12 +430,16 @@ function handleReleaseLock(event) {
         showAlert(`Lock released successfully on '${resourceName}'.`, "success");
         logActivity(`RELEASE: '${clientId}' released lock on '${resourceName}'`, "success");
 
-        // Clear release handle input
         handleInput.value = "";
 
-        // Immediately refresh active locks table and stats
         loadActiveLocks();
         loadSystemSummary();
+        loadResourceFiles();
+
+        const wsSelect = document.getElementById("workspace-file-select");
+        if (wsSelect && wsSelect.value === resourceName) {
+          loadWorkspaceFileContent();
+        }
       } else {
         showAlert(`Release rejected: ${data.message}`, "danger");
         logActivity(`REJECTED: Release for '${resourceName}' failed (${data.message})`, "danger");
@@ -254,12 +457,9 @@ function handleReleaseLock(event) {
 }
 
 // ============================================================================
-// 4. Quick Resource Status Inspector (Free vs Locked)
+// 6. Quick Resource Status Inspector
 // ============================================================================
 
-/**
- * Inspects the status of a specific named resource.
- */
 function handleInspectStatus() {
   const input = document.getElementById("inspect-resource-name");
   const resultContainer = document.getElementById("inspector-result");
@@ -284,12 +484,10 @@ function handleInspectStatus() {
       resultName.textContent = data.resource_name;
 
       if (data.is_locked) {
-        // Explicitly shows resource is LOCKED and which client owns it
         resultStatus.className = "badge badge-locked";
         resultStatus.textContent = "LOCKED";
         resultOwner.textContent = data.owner || "external_process";
       } else {
-        // Explicitly shows resource is FREE
         resultStatus.className = "badge badge-free";
         resultStatus.textContent = "FREE";
         resultOwner.textContent = "None (Available to lock)";
@@ -302,12 +500,9 @@ function handleInspectStatus() {
 }
 
 // ============================================================================
-// 5. Active Locks Table & Automated Live Polling (Phase 5)
+// 7. Active Locks Table & Live Polling
 // ============================================================================
 
-/**
- * Loads currently held locks from /api/locks and updates the table.
- */
 function loadActiveLocks() {
   fetch(`${API_BASE_URL}/api/locks`)
     .then(async function(response) {
@@ -336,7 +531,6 @@ function loadActiveLocks() {
         return;
       }
 
-      // Populate table with real backend data
       activeLocks.forEach(function(item) {
         const row = document.createElement("tr");
 
@@ -363,7 +557,6 @@ function loadActiveLocks() {
         tbody.appendChild(row);
       });
 
-      // Attach event listeners to "Select for Release" buttons
       const releaseButtons = tbody.querySelectorAll(".select-release-btn");
       releaseButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -382,9 +575,6 @@ function loadActiveLocks() {
     });
 }
 
-/**
- * Loads system summary stats from /analytics/summary if available.
- */
 function loadSystemSummary() {
   fetch(`${API_BASE_URL}/analytics/summary`)
     .then(function(response) {
@@ -401,10 +591,6 @@ function loadSystemSummary() {
     });
 }
 
-/**
- * Helper to update the top navigation backend status indicator.
- * @param {boolean} isOnline - Whether the backend is reachable.
- */
 function setBackendStatus(isOnline) {
   const statusIndicator = document.getElementById("backend-status-indicator");
   const statusText = document.getElementById("backend-status-text");
@@ -420,9 +606,6 @@ function setBackendStatus(isOnline) {
   }
 }
 
-/**
- * Checks backend connectivity.
- */
 function checkBackendHealth() {
   fetch(`${API_BASE_URL}/`)
     .then(function(response) {
@@ -439,22 +622,60 @@ function checkBackendHealth() {
 }
 
 // ============================================================================
-// 6. Page Initialization & Live Polling (Phase 5)
+// 8. Page Initialization & Event Listener Binding
 // ============================================================================
 document.addEventListener("DOMContentLoaded", function() {
   // 1. Initial health and data check
   checkBackendHealth();
   loadActiveLocks();
   loadSystemSummary();
+  loadResourceFiles();
 
-  // 2. Set up automated live polling every 3 seconds (clean, beginner-friendly periodic refresh)
-  // Agreed method with Backend A: Polls /api/locks without websockets or complex streams
+  // 2. Set up automated live polling every 3 seconds
   pollingTimerId = setInterval(function() {
     loadActiveLocks();
     loadSystemSummary();
+    loadResourceFiles();
   }, POLL_INTERVAL_MS);
 
-  // 3. Bind form submissions
+  // 3. File upload button listener
+  const uploadBtn = document.getElementById("upload-file-btn");
+  if (uploadBtn) {
+    uploadBtn.addEventListener("click", handleUploadFile);
+  }
+
+  // 4. Dropdown change listener in Acquire Lock form
+  const acquireSelect = document.getElementById("acquire-resource-select");
+  if (acquireSelect) {
+    acquireSelect.addEventListener("change", function() {
+      if (this.value) {
+        document.getElementById("acquire-resource-name").value = this.value;
+        const wsSelect = document.getElementById("workspace-file-select");
+        if (wsSelect) {
+          wsSelect.value = this.value;
+          loadWorkspaceFileContent();
+        }
+      }
+    });
+  }
+
+  // 5. Workspace file selection and buttons
+  const wsSelect = document.getElementById("workspace-file-select");
+  if (wsSelect) {
+    wsSelect.addEventListener("change", loadWorkspaceFileContent);
+  }
+
+  const wsLoadBtn = document.getElementById("workspace-load-btn");
+  if (wsLoadBtn) {
+    wsLoadBtn.addEventListener("click", loadWorkspaceFileContent);
+  }
+
+  const wsSaveBtn = document.getElementById("workspace-save-btn");
+  if (wsSaveBtn) {
+    wsSaveBtn.addEventListener("click", handleSaveWorkspaceFile);
+  }
+
+  // 6. Form submissions
   const acquireForm = document.getElementById("acquire-lock-form");
   if (acquireForm) {
     acquireForm.addEventListener("submit", handleAcquireLock);
@@ -465,27 +686,28 @@ document.addEventListener("DOMContentLoaded", function() {
     releaseForm.addEventListener("submit", handleReleaseLock);
   }
 
-  // 4. Bind inspector
+  // 7. Inspector button
   const inspectBtn = document.getElementById("inspect-btn");
   if (inspectBtn) {
     inspectBtn.addEventListener("click", handleInspectStatus);
   }
 
-  // 5. Bind manual refresh button (refreshes immediately without waiting for timer)
+  // 8. Refresh button
   const refreshBtn = document.getElementById("refresh-locks-btn");
   if (refreshBtn) {
     refreshBtn.addEventListener("click", function() {
       loadActiveLocks();
       loadSystemSummary();
+      loadResourceFiles();
       logActivity("Active locks refreshed manually.", "neutral");
     });
   }
 
-  // 6. Bind alert close button
+  // 9. Alert close button
   const closeAlertBtn = document.getElementById("alert-close");
   if (closeAlertBtn) {
     closeAlertBtn.addEventListener("click", hideAlert);
   }
 
-  logActivity("Live status polling active (every 3s).", "neutral");
+  logActivity("Mini ZooKeeper Resource Workspace ready.", "neutral");
 });
