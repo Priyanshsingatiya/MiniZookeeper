@@ -1,0 +1,11 @@
+request_id,client_id,resource_name,requested_at,acquired_at,released_at,status,wait_ms,hold_ms
+p0-req0,process-0,flash_sale_product,,2026-11-24T14:49:35.536344,,acquired,0,
+p0-req0,process-0,flash_sale_product,,,2026-11-24T14:49:35.568883,released,0,30
+p0-req1,process-0,flash_sale_product,,2026-11-24T14:49:35.575635,,acquired,0,
+p0-req1,process-0,flash_sale_product,,,2026-11-24T14:49:35.610811,released,0,30
+p0-req2,process-0,flash_sale_product,,2026-11-24T14:49:35.632753,,acquired,0,
+p0-req2,process-0,flash_sale_product,,,2026-11-24T14:49:35.665847,released,0,30
+p0-req3,process-0,flash_sale_product,,2026-11-24T14:49:35.688067,,acquired,0,
+p0-req3,process-0,flash_sale_product,,,2026-11-24T14:49:35.722592,released,0,30
+p0-req4,process-0,flash_sale_product,,2026-11-24T14:49:35.731885,,acquired,0,
+p0-req4,process-0,flash_sale_product,,,2026-11-24T14:49:35.764357,released,0,30

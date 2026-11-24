@@ -22,5 +22,45 @@ In distributed systems, if a server crashes while holding a lock, the entire app
 - Demo UI:** Bootstrap 5
 - Phase 2 Architecture Roadmap:** Go, gRPC, HashiCorp Raft
 
-#Running the Simulation**
-(Instructions for running the local worker scripts will be added here during Week 2).*
+# Running the Simulation & Backend B Telemetry
+
+### 1. Telemetry & Analytics Modules (Backend B)
+- **`src/telemetry.py`**: Safe, multi-process event logger writing to `data/locks.csv` with automatic file locking (`fcntl.flock`) and JSON export capability.
+- **`src/analysis.py`**: Metrics engine calculating total requests, successful acquisitions, timeouts, timeout rate, average/median/P95 waiting times, and holding times. Also exports `analytics_router` for FastAPI.
+- **`src/benchmark.py`**: Stress test simulation across 1, 2, 4, and 8 concurrent processes generating Matplotlib performance charts in `data/`.
+
+### 2. Running Tests
+Run the comprehensive test suite (17 tests covering CSV, JSON, concurrency, metrics, and API endpoints):
+```bash
+python3 -m unittest discover tests
+```
+
+### 3. Running Benchmarks & Generating Charts
+Run the multi-process benchmark to generate simulation metrics and visual charts:
+```bash
+python3 src/benchmark.py
+```
+Output files produced in `data/`:
+- `data/benchmark_summary.csv`
+- `data/chart_wait_time.png` (Processes vs Average Wait Time)
+- `data/chart_timeouts.png` (Processes vs Timeout Count)
+- `data/chart_hold_time.png` (Processes vs Average Hold Time)
+- `data/benchmark_dashboard.png` (3-in-1 consolidated dashboard)
+
+### 4. Integrating with Backend A's FastAPI App
+Attach the analytics router directly into your FastAPI application:
+```python
+from fastapi import FastAPI
+from src.analysis import analytics_router
+
+app = FastAPI(title="Mini ZooKeeper")
+app.include_router(analytics_router)
+```
+
+Available endpoints:
+- `GET /analytics/logs?limit=20`: Recent activity logs
+- `GET /analytics/summary`: Summary metrics (Total requests, timeout rate, avg/median/P95 wait time, avg hold time)
+- `GET /analytics/performance`: Benchmark results for 1, 2, 4, 8 processes
+- `GET /analytics/charts`: List available charts and URLs
+- `GET /analytics/charts/{chart_name}`: Serve PNG chart images for HTML `<img>` tags
+
