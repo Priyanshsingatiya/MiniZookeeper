@@ -1,5 +1,15 @@
-.venv/
+# Python bytecode
 __pycache__/
 *.pyc
-tests/temp_*
+*.pyo
+
+# Virtual environment & tools
+.venv/
 .DS_Store
+
+# Mini ZooKeeper lock files directory
+locks_data/
+
+# Testing artifacts
+.pytest_cache/
+tests/temp_*
