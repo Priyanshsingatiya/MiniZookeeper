@@ -31,9 +31,13 @@ except ImportError:
 # Optional FastAPI integration for the web dashboard and REST API
 try:
     from fastapi import FastAPI, Query
+    from fastapi.staticfiles import StaticFiles
+    from pathlib import Path
     FASTAPI_AVAILABLE = True
 except ImportError:
     FastAPI = None
+    StaticFiles = None
+    Path = None
     FASTAPI_AVAILABLE = False
 
 
@@ -212,5 +216,10 @@ if FASTAPI_AVAILABLE:
                 app.include_router(analytics_router)
         except ImportError:
             pass
+
+    # Mount frontend static files directory
+    frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+    if frontend_dir.exists():
+        app.mount("/frontend", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
 else:
     app = None

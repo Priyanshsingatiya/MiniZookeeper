@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini ZooKeeper — Distributed Lock Service</title>
+  <!-- Link to our clean external CSS stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ===================================================================
+       1. TOP NAVIGATION BAR
+       =================================================================== -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <span class="brand-icon">🔒</span>
+        <span class="brand-title">Mini ZooKeeper</span>
+      </div>
+      <nav class="nav-links">
+        <a href="index.html" class="nav-link active">Lock Manager</a>
+        <a href="analytics.html" class="nav-link">Analytics & Telemetry</a>
+      </nav>
+      <div class="nav-status">
+        <span id="backend-status-indicator" class="status-dot connected"></span>
+        <span id="backend-status-text">Backend Connected</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================================
+       2. MAIN CONTENT CONTAINER
+       =================================================================== -->
+  <main class="main-container">
+
+    <!-- Dashboard Header -->
+    <section class="dashboard-header">
+      <h1 class="page-title">Distributed Lock Dashboard</h1>
+      <p class="page-subtitle">
+        Atomic mutual exclusion & lease coordination powered by kernel-level OS file locking.
+      </p>
+    </section>
+
+    <!-- Notification / Alert Banner -->
+    <div id="alert-banner" class="alert-banner hidden">
+      <span id="alert-icon">ℹ️</span>
+      <span id="alert-message">Welcome to Mini ZooKeeper Dashboard</span>
+      <button id="alert-close" class="alert-close-btn" type="button">&times;</button>
+    </div>
+
+    <!-- ===================================================================
+         3. STATS KPI CARDS
+         =================================================================== -->
+    <section class="stats-grid">
+      <!-- Card 1: Active Locks -->
+      <div class="stat-card">
+        <div class="stat-label">Active Locks Held</div>
+        <div id="stat-active-locks" class="stat-value">0</div>
+        <div class="stat-desc">Resources currently in critical sections</div>
+      </div>
+
+      <!-- Card 2: Total Requests -->
+      <div class="stat-card">
+        <div class="stat-label">Total Requests</div>
+        <div id="stat-total-requests" class="stat-value">0</div>
+        <div class="stat-desc">Lifetime lock requests handled</div>
+      </div>
+
+      <!-- Card 3: System Status -->
+      <div class="stat-card">
+        <div class="stat-label">System State</div>
+        <div id="stat-system-status" class="stat-value text-success">Healthy</div>
+        <div class="stat-desc">OS kernel mutex active</div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         4. RESOURCE MANAGEMENT CONSOLE (ACQUIRE & RELEASE FORMS)
+         =================================================================== -->
+    <section class="management-grid">
+
+      <!-- Form Card 1: Acquire Lock -->
+      <div class="card form-card">
+        <div class="card-header-flex">
+          <h2 class="card-title">📥 Acquire a Lock</h2>
+          <span class="badge badge-info">Mutex Acquire</span>
+        </div>
+        <p class="card-subtitle">Request an exclusive OS lock on a named shared resource.</p>
+
+        <form id="acquire-lock-form">
+          <div class="form-group">
+            <label for="acquire-resource-name" class="form-label">Resource Name</label>
+            <input 
+              type="text" 
+              id="acquire-resource-name" 
+              class="form-input" 
+              placeholder="e.g. flight_seat_12A" 
+              required
+            >
+            <span class="form-hint">Only letters, numbers, hyphens, and underscores.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="acquire-client-id" class="form-label">Client ID</label>
+            <input 
+              type="text" 
+              id="acquire-client-id" 
+              class="form-input" 
+              placeholder="e.g. worker_alice" 
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="acquire-timeout" class="form-label">Wait Timeout (Seconds)</label>
+            <input 
+              type="number" 
+              id="acquire-timeout" 
+              class="form-input" 
+              value="0.0" 
+              min="0" 
+              step="0.5" 
+              required
+            >
+            <span class="form-hint">0.0 = return immediately if busy; &gt; 0 = wait up to N seconds.</span>
+          </div>
+
+          <button type="submit" id="acquire-submit-btn" class="btn btn-primary btn-block">
+            <span id="acquire-btn-text">🔒 Request Lock</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Form Card 2: Release Lock -->
+      <div class="card form-card">
+        <div class="card-header-flex">
+          <h2 class="card-title">📤 Release a Lock</h2>
+          <span class="badge badge-neutral">Safe Unlock</span>
+        </div>
+        <p class="card-subtitle">Release an active lock. Requires both client ID and the secret lock handle.</p>
+
+        <form id="release-lock-form">
+          <div class="form-group">
+            <label for="release-resource-name" class="form-label">Resource Name</label>
+            <input 
+              type="text" 
+              id="release-resource-name" 
+              class="form-input" 
+              placeholder="e.g. flight_seat_12A" 
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="release-client-id" class="form-label">Client ID (Owner)</label>
+            <input 
+              type="text" 
+              id="release-client-id" 
+              class="form-input" 
+              placeholder="e.g. worker_alice" 
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="release-lock-handle" class="form-label">Secret Lock Handle</label>
+            <input 
+              type="text" 
+              id="release-lock-handle" 
+              class="form-input" 
+              placeholder="e.g. handle_7f8e1d2c3b4a" 
+              required
+            >
+            <span class="form-hint">Issued when acquired. Auto-filled on acquisition.</span>
+          </div>
+
+          <button type="submit" id="release-submit-btn" class="btn btn-danger btn-block">
+            <span id="release-btn-text">🔓 Release Lock</span>
+          </button>
+        </form>
+      </div>
+
+    </section>
+
+    <!-- ===================================================================
+         5. RESOURCE STATUS INSPECTOR
+         =================================================================== -->
+    <section class="card status-inspector-card">
+      <h2 class="card-title">🔍 Quick Resource Status Inspector</h2>
+      <p class="card-subtitle">Check if any resource is currently free or locked before requesting.</p>
+      
+      <div class="inspector-form">
+        <input 
+          type="text" 
+          id="inspect-resource-name" 
+          class="form-input" 
+          placeholder="Enter resource name (e.g. flight_seat_12A)"
+        >
+        <button id="inspect-btn" class="btn btn-secondary" type="button">Inspect Status</button>
+      </div>
+
+      <div id="inspector-result" class="inspector-result hidden">
+        <div class="result-row">
+          <span class="result-label">Resource:</span>
+          <span id="inspect-result-name" class="result-val">-</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Status:</span>
+          <span id="inspect-result-status" class="badge badge-free">FREE</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Current Owner:</span>
+          <span id="inspect-result-owner" class="result-val">None</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         6. ACTIVE LOCKS TABLE & RECENT ACTIVITY
+         =================================================================== -->
+    <section class="dashboard-columns">
+      
+      <!-- Left Column: Active Locks Table -->
+      <div class="card table-card">
+        <div class="card-header-flex">
+          <div>
+            <h2 class="card-title">📋 Currently Held Locks</h2>
+            <span class="badge badge-sm badge-info">Auto-refresh (3s)</span>
+          </div>
+          <button id="refresh-locks-btn" class="btn btn-sm btn-outline" type="button">🔄 Refresh Now</button>
+        </div>
+        
+        <div class="table-responsive">
+          <table class="locks-table">
+            <thead>
+              <tr>
+                <th>Resource Name</th>
+                <th>Owner (Client ID)</th>
+                <th>Acquired At</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="active-locks-tbody">
+              <!-- Dynamically populated by dashboard.js -->
+              <tr class="empty-row">
+                <td colspan="4">No locks are currently held. All resources free!</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right Column: Recent Activity Feed -->
+      <div class="card activity-card">
+        <div class="card-header-flex">
+          <h2 class="card-title">⏱️ Recent Activity Feed</h2>
+          <span class="badge badge-sm badge-info">Real-time</span>
+        </div>
+        
+        <ul id="activity-list" class="activity-list">
+          <!-- Dynamically populated by dashboard.js -->
+          <li class="activity-item">
+            <span class="activity-badge badge-neutral">INIT</span>
+            <span class="activity-text">Dashboard initialized and connected.</span>
+          </li>
+        </ul>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ===================================================================
+       7. FOOTER
+       =================================================================== -->
+  <footer class="footer">
+    <div class="footer-container">
+      <p>Mini ZooKeeper — Distributed Lock Service &copy; 2026. Built with Python & Vanilla JS.</p>
+    </div>
+  </footer>
+
+  <!-- Script for Dashboard Logic -->
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

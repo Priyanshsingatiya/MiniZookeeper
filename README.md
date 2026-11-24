@@ -136,4 +136,42 @@ To run the FastAPI server locally:
 ```bash
 python3 -m uvicorn src.lock_adapter:app --reload --port 8000
 ```
+
+---
+
+# Frontend A: Main Dashboard & Lock Management Interface
+
+Frontend A provides a clean, responsive, and beginner-friendly web dashboard for real-time lock management. Built purely with semantic HTML5, modern vanilla CSS, and standard JavaScript `fetch()`.
+
+### 1. File Structure
+```
+frontend/
+├── index.html        # Clean HTML5 dashboard structure
+├── css/
+│   └── style.css     # Responsive CSS styling, cards, flexbox/grid layout
+└── js/
+    └── dashboard.js  # Vanilla JavaScript DOM handling, fetch() calls, and auto-polling
+```
+
+### 2. Core UI Components
+1. **Navigation Bar**: Displays project branding, active tab navigation, and live backend connection health (`● Backend Connected` / `● Backend Offline`).
+2. **KPI Stat Cards**: Real-time counter of Active Locks Held, Total Lifetime Requests, and System Health.
+3. **Acquire Lock Card**: Form to request an exclusive lock with Resource Name, Client ID, and optional Wait Timeout.
+4. **Release Lock Card**: Form to release an active lock using Client ID and secret `lock_handle` (with automatic handle pre-fill upon acquisition).
+5. **Quick Resource Status Inspector**: Allows users to check whether any resource is currently `FREE` or `LOCKED` before attempting acquisition.
+6. **Active Locks Table**: Real-time table displaying currently held locks, owners, timestamps, and quick-release action buttons.
+7. **Automated Live Polling**: Automatically refreshes active locks and system summary every 3 seconds via `setInterval()`, keeping multiple browser windows synchronized without WebSockets.
+8. **Recent Activity Feed**: Real-time chronological audit trail of recent lock events.
+
+### 3. How to Launch and View
+1. Start the unified FastAPI backend:
+   ```bash
+   python3 -m uvicorn src.lock_adapter:app --reload --port 8000
+   ```
+2. Open your web browser and navigate to:
+   ```
+   http://localhost:8000/frontend/index.html
+   ```
+Interactive API docs are also available at `http://localhost:8000/docs`.
+
 Interactive Swagger docs: `http://localhost:8000/docs`
