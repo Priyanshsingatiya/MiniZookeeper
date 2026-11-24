@@ -127,6 +127,28 @@ class TestLockAdapter(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(resp.json()["is_locked"])
 
+    def test_frontend_static_serving(self):
+        """Verify frontend static files are properly served by FastAPI."""
+        if not FASTAPI_AVAILABLE:
+            self.skipTest("FastAPI not available")
+
+        client = TestClient(app)
+
+        # Check index.html
+        resp_html = client.get("/frontend/index.html")
+        self.assertEqual(resp_html.status_code, 200)
+        self.assertIn("Mini ZooKeeper", resp_html.text)
+
+        # Check style.css
+        resp_css = client.get("/frontend/css/style.css")
+        self.assertEqual(resp_css.status_code, 200)
+        self.assertIn("--primary-color", resp_css.text)
+
+        # Check dashboard.js
+        resp_js = client.get("/frontend/js/dashboard.js")
+        self.assertEqual(resp_js.status_code, 200)
+        self.assertIn("handleAcquireLock", resp_js.text)
+
 
 if __name__ == "__main__":
     unittest.main()

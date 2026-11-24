@@ -1,0 +1,576 @@
+/* ==========================================================================
+   frontend/css/style.css
+   Clean, modern styling for Mini ZooKeeper (Shared between Frontend A & B).
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. CSS Reset & Global Variables
+   -------------------------------------------------------------------------- */
+:root {
+  --primary-color: #2563eb;       /* Royal Blue */
+  --primary-hover: #1d4ed8;
+  --secondary-color: #475569;     /* Slate */
+  --secondary-hover: #334155;
+  --bg-color: #f8fafc;            /* Light off-white */
+  --card-bg: #ffffff;
+  --text-dark: #0f172a;           /* Dark Slate */
+  --text-muted: #64748b;          /* Soft Gray */
+  --border-color: #e2e8f0;        /* Subtle Border */
+  --success-color: #16a34a;       /* Green */
+  --danger-color: #dc2626;        /* Red */
+  --warning-color: #d97706;       /* Amber */
+  --info-color: #0284c7;          /* Sky Blue */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --border-radius: 8px;
+  --box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --box-shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-color);
+  color: var(--text-dark);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --------------------------------------------------------------------------
+   2. Top Navigation Bar
+   -------------------------------------------------------------------------- */
+.navbar {
+  background-color: #0f172a;
+  color: #ffffff;
+  padding: 0.85rem 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.brand-icon {
+  font-size: 1.4rem;
+}
+
+.nav-links {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.nav-link {
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-link.active {
+  color: #ffffff;
+  background-color: var(--primary-color);
+}
+
+.nav-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.connected {
+  background-color: var(--success-color);
+  box-shadow: 0 0 6px var(--success-color);
+}
+
+.status-dot.offline {
+  background-color: var(--danger-color);
+}
+
+/* --------------------------------------------------------------------------
+   3. Main Container & Dashboard Header
+   -------------------------------------------------------------------------- */
+.main-container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+  flex: 1;
+}
+
+.dashboard-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* --------------------------------------------------------------------------
+   4. Alert / Notification Banner
+   -------------------------------------------------------------------------- */
+.alert-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+  border: 1px solid transparent;
+  transition: opacity 0.3s ease;
+}
+
+.alert-banner.hidden {
+  display: none;
+}
+
+.alert-banner.alert-success {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.alert-banner.alert-danger {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.alert-banner.alert-warning {
+  background-color: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.alert-banner.alert-info {
+  background-color: #f0f9ff;
+  color: #075985;
+  border-color: #bae6fd;
+}
+
+.alert-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+/* --------------------------------------------------------------------------
+   5. Stats KPI Grid
+   -------------------------------------------------------------------------- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 1.25rem;
+  box-shadow: var(--box-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-hover);
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.1;
+  margin-bottom: 0.25rem;
+}
+
+.stat-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.text-success {
+  color: var(--success-color);
+}
+
+/* --------------------------------------------------------------------------
+   6. Cards & Containers
+   -------------------------------------------------------------------------- */
+.management-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 860px) {
+  .management-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 1.25rem;
+  box-shadow: var(--box-shadow);
+  margin-bottom: 1.5rem;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 0.35rem;
+}
+
+.form-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.btn-block {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
+}
+
+.btn-danger {
+  background-color: var(--danger-color);
+  color: #ffffff;
+}
+
+.btn-danger:hover {
+  background-color: #b91c1c;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.card-header-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.card-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.card-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+/* Inspector Form */
+.inspector-form {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.form-input {
+  flex: 1;
+  min-width: 240px;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.inspector-result {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  background-color: #f1f5f9;
+  border-radius: 6px;
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}
+
+.inspector-result.hidden {
+  display: none;
+}
+
+.result-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.result-label {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.result-val {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+/* --------------------------------------------------------------------------
+   7. Two-Column Dashboard Layout
+   -------------------------------------------------------------------------- */
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 860px) {
+  .dashboard-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   8. Tables
+   -------------------------------------------------------------------------- */
+.table-responsive {
+  overflow-x: auto;
+}
+
+.locks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.locks-table th {
+  background-color: #f8fafc;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.locks-table td {
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-dark);
+}
+
+.locks-table tr:hover {
+  background-color: #f8fafc;
+}
+
+.empty-row td {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 1.5rem 0;
+  font-style: italic;
+}
+
+/* --------------------------------------------------------------------------
+   9. Activity List
+   -------------------------------------------------------------------------- */
+.activity-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 4px;
+  background-color: #f8fafc;
+}
+
+.activity-text {
+  color: var(--text-dark);
+  flex: 1;
+  word-break: break-all;
+}
+
+/* --------------------------------------------------------------------------
+   10. Badges & Buttons
+   -------------------------------------------------------------------------- */
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.badge-free {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.badge-locked {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-info {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.badge-neutral {
+  background-color: #e2e8f0;
+  color: #475569;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: #ffffff;
+}
+
+.btn-secondary:hover {
+  background-color: var(--secondary-hover);
+}
+
+.btn-outline {
+  background-color: transparent;
+  border-color: var(--border-color);
+  color: var(--text-dark);
+}
+
+.btn-outline:hover {
+  background-color: #f1f5f9;
+}
+
+.btn-sm {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+/* --------------------------------------------------------------------------
+   11. Footer
+   -------------------------------------------------------------------------- */
+.footer {
+  background-color: #ffffff;
+  border-top: 1px solid var(--border-color);
+  padding: 1.25rem 1rem;
+  margin-top: auto;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
