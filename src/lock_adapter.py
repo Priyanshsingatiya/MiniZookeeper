@@ -13,12 +13,20 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 # Import the core locking functions from our lock_manager
-from lock_manager import (
-    acquire_lock as core_acquire,
-    release_lock as core_release,
-    get_lock_status as core_status,
-    get_all_active_locks as core_list_active
-)
+try:
+    from lock_manager import (
+        acquire_lock as core_acquire,
+        release_lock as core_release,
+        get_lock_status as core_status,
+        get_all_active_locks as core_list_active
+    )
+except ImportError:
+    from src.lock_manager import (
+        acquire_lock as core_acquire,
+        release_lock as core_release,
+        get_lock_status as core_status,
+        get_all_active_locks as core_list_active
+    )
 
 # Optional FastAPI integration for the web dashboard and REST API
 try:
@@ -122,6 +130,38 @@ if FASTAPI_AVAILABLE:
         description="Backend A Core Locking System API",
         version="1.0.0"
     )
+
+    # Enable CORS for frontend dashboards and web requests
+    from fastapi.middleware.cors import CORSMiddleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Include Backend B Telemetry & Analytics Router
+    try:
+        from analysis import analytics_router
+    except ImportError:
+        try:
+            from src.analysis import analytics_router
+        except ImportError:
+            analytics_router = None
+
+    if analytics_router:
+        app.include_router(analytics_router)
+
+    # Mount frontend static directory so pages are accessible directly from FastAPI
+    from pathlib import Path
+    from fastapi.staticfiles import StaticFiles
+
+    frontend_path = Path(__file__).resolve().parent.parent / "frontend"
+    if frontend_path.exists():
+        app.mount("/frontend", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
+
+
 
     @app.get("/")
     def root():

@@ -33,6 +33,14 @@ In distributed systems, if a server crashes while holding a lock, the entire app
 
 ```
 MiniZookeeper/
+├── frontend/
+│   ├── activity.html       # Frontend B: Live Activity Logs page
+│   ├── analytics.html      # Frontend B: Analytics & Performance Dashboard
+│   ├── css/
+│   │   └── style.css       # Shared styling, color-coded badges & cards
+│   └── js/
+│       ├── activity.js     # Live activity log fetching & table rendering
+│       └── analytics.js    # Metric card updates & Matplotlib chart display
 ├── src/
 │   ├── lock_manager.py     # Backend A: Core OS-level locking engine (fcntl.flock, crash recovery)
 │   ├── lock_adapter.py     # Backend A: Safe API adapter & FastAPI endpoints
@@ -56,6 +64,26 @@ MiniZookeeper/
     ├── test_api.py                    # Backend B: Analytics API endpoints
     └── test_integration.py            # End-to-end integration test
 ```
+
+---
+
+# Frontend B: Activity Logs & Analytics Dashboard
+
+Frontend B provides responsive, framework-free web pages using pure HTML5, CSS3, and modern JavaScript:
+
+### 1. Web Pages
+- **Activity Logs (`/frontend/activity.html`)**: Real-time audit table showing all 9 fields (`request_id`, `client_id`, `resource_name`, `requested_at`, `acquired_at`, `released_at`, `status`, `wait_ms`, `hold_ms`) with color-coded status badges, empty states, error handling, and a refresh button.
+- **Analytics Dashboard (`/frontend/analytics.html`)**: Displays 7 KPI summary cards (`Total Requests`, `Acquisitions`, `Released`, `Timeouts`, `Timeout Rate %`, `Avg Wait Time`, `Avg Hold Time`), a college viva reference guide explaining each metric, and 3 embedded Matplotlib benchmark charts.
+
+### 2. Viewing the Dashboard
+Start the unified FastAPI server:
+```bash
+python3 -m uvicorn src.lock_adapter:app --reload --port 8000
+```
+Then open in your browser:
+- **Activity Logs:** `http://localhost:8000/frontend/activity.html`
+- **Analytics Dashboard:** `http://localhost:8000/frontend/analytics.html`
+- **API Documentation:** `http://localhost:8000/docs`
 
 ---
 

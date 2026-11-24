@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics Dashboard - Mini ZooKeeper</title>
+  <!-- Bootstrap 5 CSS via CDN for grid and layout -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar (Shared across all pages) -->
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="index.html">
+        <span class="me-2">🔒</span> Mini ZooKeeper
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navContent">
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="activity.html">Activity Logs</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="analytics.html">Analytics</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="container my-4">
+
+    <!-- Page Header & Action Bar -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center page-header pb-2 border-bottom">
+      <div>
+        <h2 class="page-title">Analytics & Performance Dashboard</h2>
+        <p class="page-subtitle mb-0">System health metrics, contention indicators, and benchmark charts</p>
+      </div>
+      <div class="mt-2 mt-md-0 d-flex align-items-center gap-2">
+        <small class="text-muted" id="last-updated-text">Not updated yet</small>
+        <button class="btn btn-primary btn-sm d-flex align-items-center gap-1" id="btn-refresh">
+          <span>🔄</span> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="state-box" id="loading-state" style="display: none;">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="mb-0">Calculating analytics from backend logs...</p>
+    </div>
+
+    <!-- Error State -->
+    <div class="alert alert-danger my-3" id="error-state" style="display: none;">
+      <strong>Error:</strong> <span id="error-message">Unable to load analytics.</span>
+      <button class="btn btn-sm btn-outline-danger ms-3" id="btn-retry">Retry</button>
+    </div>
+
+    <!-- Content Section (Cards & Charts) -->
+    <div id="analytics-content">
+
+      <!-- ============================================================== -->
+      <!-- SECTION 1: Summary Metric Cards (7 Required Metrics)           -->
+      <!-- ============================================================== -->
+      <h5 class="fw-bold text-secondary mb-3 mt-2">Core System Metrics</h5>
+      
+      <div class="row g-3 mb-4">
+        <!-- 1. Total Lock Requests -->
+        <div class="col-sm-6 col-lg-3">
+          <div class="metric-card border-top border-4 border-primary">
+            <div class="metric-label">Total Requests</div>
+            <div class="metric-value text-primary" id="val-total-requests">-</div>
+            <small class="text-muted">Unique lock attempts</small>
+          </div>
+        </div>
+
+        <!-- 2. Successful Acquisitions -->
+        <div class="col-sm-6 col-lg-3">
+          <div class="metric-card border-top border-4 border-info">
+            <div class="metric-label">Acquisitions</div>
+            <div class="metric-value text-info" id="val-acquisitions">-</div>
+            <small class="text-muted">Granted successfully</small>
+          </div>
+        </div>
+
+        <!-- 3. Released Locks -->
+        <div class="col-sm-6 col-lg-3">
+          <div class="metric-card border-top border-4 border-success">
+            <div class="metric-label">Released Locks</div>
+            <div class="metric-value text-success" id="val-released">-</div>
+            <small class="text-muted">Safely released</small>
+          </div>
+        </div>
+
+        <!-- 4. Timeout Count -->
+        <div class="col-sm-6 col-lg-3">
+          <div class="metric-card border-top border-4 border-danger">
+            <div class="metric-label">Timed-Out Requests</div>
+            <div class="metric-value text-danger" id="val-timeouts">-</div>
+            <small class="text-muted">Queue time exceeded</small>
+          </div>
+        </div>
+
+        <!-- 5. Timeout Rate -->
+        <div class="col-sm-6 col-lg-4">
+          <div class="metric-card border-top border-4 border-warning">
+            <div class="metric-label">Timeout Rate</div>
+            <div class="metric-value text-warning" id="val-timeout-rate">-</div>
+            <small class="text-muted">% of requests timed out</small>
+          </div>
+        </div>
+
+        <!-- 6. Average Waiting Time -->
+        <div class="col-sm-6 col-lg-4">
+          <div class="metric-card border-top border-4 border-secondary">
+            <div class="metric-label">Average Wait Time</div>
+            <div class="metric-value text-dark" id="val-avg-wait">-</div>
+            <small class="text-muted">Mean time spent in queue</small>
+          </div>
+        </div>
+
+        <!-- 7. Average Holding Time -->
+        <div class="col-sm-12 col-lg-4">
+          <div class="metric-card border-top border-4 border-dark">
+            <div class="metric-label">Average Hold Time</div>
+            <div class="metric-value text-dark" id="val-avg-hold">-</div>
+            <small class="text-muted">Mean duration lock held</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- SECTION 2: Metric Explanations Guide (For College Viva)        -->
+      <!-- ============================================================== -->
+      <div class="custom-card mb-4">
+        <div class="card-header-clean bg-light">
+          <span class="fw-bold">💡 What Do These Metrics Mean? (Viva Reference Guide)</span>
+        </div>
+        <div class="p-3">
+          <div class="row g-3">
+            <div class="col-md-6 col-lg-4">
+              <div class="p-2 border rounded bg-white h-100">
+                <h6 class="fw-bold text-primary mb-1">Total Lock Requests</h6>
+                <p class="small text-muted mb-0">Total number of distinct client attempts to acquire a lock across all workers.</p>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+              <div class="p-2 border rounded bg-white h-100">
+                <h6 class="fw-bold text-info mb-1">Successful Acquisitions</h6>
+                <p class="small text-muted mb-0">Requests that successfully obtained exclusive mutual exclusion without clashing.</p>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+              <div class="p-2 border rounded bg-white h-100">
+                <h6 class="fw-bold text-success mb-1">Released Locks</h6>
+                <p class="small text-muted mb-0">Locks that completed their critical section and were freed for the next waiting client.</p>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+              <div class="p-2 border rounded bg-white h-100">
+                <h6 class="fw-bold text-danger mb-1">Timeout Count</h6>
+                <p class="small text-muted mb-0">Requests where waiting time exceeded the client's timeout limit before lock became free.</p>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+              <div class="p-2 border rounded bg-white h-100">
+                <h6 class="fw-bold text-warning mb-1">Timeout Rate (%)</h6>
+                <p class="small text-muted mb-0">Percentage of total requests that timed out: <code>(Timeouts / Requests) &times; 100</code>.</p>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+              <div class="p-2 border rounded bg-white h-100">
+                <h6 class="fw-bold text-dark mb-1">Wait vs Hold Time</h6>
+                <p class="small text-muted mb-0"><strong>Wait Time:</strong> Delay before acquiring. <strong>Hold Time:</strong> Duration the lock was kept active.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- SECTION 3: Performance Charts (Backend-Generated Matplotlib)   -->
+      <!-- ============================================================== -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-secondary mb-0">Performance Benchmark Visualizations</h5>
+        <span class="badge bg-light text-dark border">Generated with Matplotlib</span>
+      </div>
+
+      <div class="row g-4" id="charts-container">
+        <!-- Chart 1: Processes vs Average Waiting Time -->
+        <div class="col-lg-4">
+          <div class="custom-card h-100">
+            <div class="card-header-clean">
+              <span class="fw-bold small">1. Processes vs Wait Time</span>
+            </div>
+            <div class="p-2 text-center">
+              <img src="/analytics/charts/chart_wait_time.png" 
+                   id="img-chart-wait" 
+                   alt="Processes vs Average Waiting Time" 
+                   class="img-fluid rounded border"
+                   onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23f1f5f9\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2394a3b8\'>Chart loading or not generated</text></svg>';">
+            </div>
+            <div class="p-2 text-muted small border-top bg-light">
+              Demonstrates queue delay scaling as concurrency increases from 1 to 8 processes.
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart 2: Processes vs Timeout Count -->
+        <div class="col-lg-4">
+          <div class="custom-card h-100">
+            <div class="card-header-clean">
+              <span class="fw-bold small">2. Processes vs Timeouts</span>
+            </div>
+            <div class="p-2 text-center">
+              <img src="/analytics/charts/chart_timeouts.png" 
+                   id="img-chart-timeouts" 
+                   alt="Processes vs Timeout Count" 
+                   class="img-fluid rounded border"
+                   onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23f1f5f9\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2394a3b8\'>Chart loading or not generated</text></svg>';">
+            </div>
+            <div class="p-2 text-muted small border-top bg-light">
+              Shows lock contention saturation points where requests exceed timeout thresholds.
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart 3: Processes vs Average Holding Time -->
+        <div class="col-lg-4">
+          <div class="custom-card h-100">
+            <div class="card-header-clean">
+              <span class="fw-bold small">3. Processes vs Holding Time</span>
+            </div>
+            <div class="p-2 text-center">
+              <img src="/analytics/charts/chart_hold_time.png" 
+                   id="img-chart-hold" 
+                   alt="Processes vs Average Holding Time" 
+                   class="img-fluid rounded border"
+                   onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23f1f5f9\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2394a3b8\'>Chart loading or not generated</text></svg>';">
+            </div>
+            <div class="p-2 text-muted small border-top bg-light">
+              Proves execution stability: workers release locks cleanly without holding them hostage.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container text-center">
+      <p class="mb-0">Mini ZooKeeper Distributed Lock Service &bull; College Project</p>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JS Bundle via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Analytics Page JavaScript -->
+  <script src="js/analytics.js"></script>
+</body>
+</html>
