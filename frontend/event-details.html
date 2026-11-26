@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Details & Seat Selection - Mini ZooKeeper</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+
+  <div class="container" style="max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem;">
+    <!-- Back to Events Button -->
+    <div style="margin-bottom: 1rem;">
+      <a href="events.html" style="text-decoration: none; color: #2563eb; font-weight: 600; font-size: 0.9rem;">
+        ← Back to All Events
+      </a>
+    </div>
+
+    <!-- Event Header Card -->
+    <div id="eventHeaderCard" class="card" style="margin-bottom: 2rem; padding: 1.5rem; background: #ffffff; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--box-shadow);">
+      <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-start;">
+        <img id="eventPosterImg" src="" alt="Event Poster" style="width: 240px; height: 160px; object-fit: cover; border-radius: 8px; background: #1e293b;" onerror="this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800'">
+        <div style="flex: 1; min-width: 280px;">
+          <h1 id="eventTitle" style="font-size: 1.75rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">Loading Event...</h1>
+          <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; color: #475569; font-size: 0.95rem;">
+            <div>📅 <strong id="eventDate">--</strong></div>
+            <div>📍 <strong id="eventVenue">--</strong></div>
+            <div>💵 <strong id="eventPrice">--</strong> / seat</div>
+          </div>
+          <p id="eventDesc" style="color: #64748b; font-size: 0.95rem; line-height: 1.5;">--</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Theater Seating Grid -->
+    <div class="theater-container">
+      <div style="margin-bottom: 1.5rem;">
+        <h2 style="font-size: 1.35rem; font-weight: 700; color: #0f172a; margin-bottom: 0.25rem;">Select Your Seats</h2>
+        <p style="font-size: 0.9rem; color: #64748b;">
+          Click available green seats to select. Seats are locked under <strong>Mini ZooKeeper OS Mutex</strong> during reservation.
+        </p>
+      </div>
+
+      <!-- Theater Stage Graphic -->
+      <div class="screen-indicator">
+        🎬 STAGE / MAIN SCREEN
+      </div>
+
+      <!-- Seats Layout Grid -->
+      <div id="seatingGridContainer" class="seating-grid">
+        <div class="spinner-border" style="grid-column: 1 / -1; margin: 2rem auto;"></div>
+      </div>
+
+      <!-- Seating Legend -->
+      <div class="seat-legend">
+        <div class="legend-item">
+          <div class="legend-dot available"></div>
+          <span>Available</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot selected"></div>
+          <span>Your Selection</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot reserved"></div>
+          <span>Reserved (5-min hold)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot sold"></div>
+          <span>Sold Out</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Booking Summary & Action Bar -->
+    <div class="card" style="padding: 1.25rem 1.75rem; background: #ffffff; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--box-shadow); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <div style="font-size: 0.85rem; color: #64748b; text-transform: uppercase; font-weight: 600;">Selected Seats</div>
+        <div id="selectedSeatsLabel" style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-top: 0.2rem;">
+          None selected
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size: 0.85rem; color: #64748b; text-transform: uppercase; font-weight: 600;">Total Amount</div>
+        <div id="totalAmountLabel" style="font-size: 1.4rem; font-weight: 800; color: #2563eb; margin-top: 0.2rem;">
+          $0.00
+        </div>
+      </div>
+
+      <div>
+        <button id="reserveBtn" onclick="handleReserveSeats()" disabled class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 1rem; font-weight: 700;">
+          🔒 Reserve & Proceed to Pay →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/booking-common.js"></script>
+  <script>
+    renderNavbar("events");
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const eventId = parseInt(urlParams.get("id"), 10);
+    let eventDetails = null;
+    let selectedSeatIds = new Set();
+    let seatDataMap = new Map();
+
+    if (!eventId) {
+      alert("No event ID specified.");
+      window.location.href = "events.html";
+    }
+
+    async function loadEventAndSeats() {
+      try {
+        // Fetch event metadata
+        const evRes = await fetch(`/api/events/${eventId}`);
+        if (!evRes.ok) throw new Error("Event not found");
+        eventDetails = await evRes.json();
+
+        document.getElementById("eventTitle").innerText = eventDetails.title;
+        document.getElementById("eventDate").innerText = formatDate(eventDetails.event_date);
+        document.getElementById("eventVenue").innerText = eventDetails.venue;
+        document.getElementById("eventPrice").innerText = `$${parseFloat(eventDetails.ticket_price).toFixed(2)}`;
+        document.getElementById("eventDesc").innerText = eventDetails.description || "Enjoy the event!";
+        if (eventDetails.poster) {
+          document.getElementById("eventPosterImg").src = eventDetails.poster;
+        }
+
+        // Fetch seat grid
+        const seatsRes = await fetch(`/api/events/${eventId}/seats`);
+        if (!seatsRes.ok) throw new Error("Failed to load seats");
+        const seats = await seatsRes.json();
+
+        renderSeats(seats);
+      } catch (err) {
+        showToast("Error loading event: " + err.message, "danger");
+      }
+    }
+
+    function renderSeats(seats) {
+      const container = document.getElementById("seatingGridContainer");
+      seatDataMap.clear();
+
+      container.innerHTML = seats.map(s => {
+        seatDataMap.set(s.id, s);
+        const isSelected = selectedSeatIds.has(s.id);
+        const statusClass = isSelected ? "selected" : s.status.toLowerCase();
+
+        return `
+          <div 
+            class="seat ${statusClass}" 
+            data-id="${s.id}" 
+            data-label="${s.seat_number}"
+            onclick="toggleSeatSelection(${s.id}, '${s.status}')"
+            title="Seat ${s.seat_number} (${s.status})"
+          >
+            ${s.seat_number}
+          </div>
+        `;
+      }).join("");
+
+      updateSelectionSummary();
+    }
+
+    function toggleSeatSelection(seatId, status) {
+      if (status !== "AVAILABLE") {
+        if (status === "RESERVED") {
+          showToast(`Seat is currently on temporary hold by another customer.`, "warning");
+        } else if (status === "SOLD") {
+          showToast(`Seat is already sold out.`, "danger");
+        }
+        return;
+      }
+
+      if (selectedSeatIds.has(seatId)) {
+        selectedSeatIds.delete(seatId);
+      } else {
+        selectedSeatIds.add(seatId);
+      }
+
+      // Re-render seat classes
+      document.querySelectorAll(".seat").forEach(el => {
+        const id = parseInt(el.getAttribute("data-id"), 10);
+        const s = seatDataMap.get(id);
+        if (s && s.status === "AVAILABLE") {
+          if (selectedSeatIds.has(id)) {
+            el.className = "seat selected";
+          } else {
+            el.className = "seat available";
+          }
+        }
+      });
+
+      updateSelectionSummary();
+    }
+
+    function updateSelectionSummary() {
+      const reserveBtn = document.getElementById("reserveBtn");
+      const selectedSeatsLabel = document.getElementById("selectedSeatsLabel");
+      const totalAmountLabel = document.getElementById("totalAmountLabel");
+
+      if (selectedSeatIds.size === 0) {
+        selectedSeatsLabel.innerText = "None selected";
+        totalAmountLabel.innerText = "$0.00";
+        reserveBtn.disabled = true;
+        return;
+      }
+
+      const seatNames = [];
+      selectedSeatIds.forEach(id => {
+        const s = seatDataMap.get(id);
+        if (s) seatNames.push(s.seat_number);
+      });
+
+      selectedSeatsLabel.innerText = seatNames.join(", ");
+      const total = (selectedSeatIds.size * eventDetails.ticket_price).toFixed(2);
+      totalAmountLabel.innerText = `$${total}`;
+      reserveBtn.disabled = false;
+    }
+
+    async function handleReserveSeats() {
+      // Ensure user is signed in
+      let user = getUser();
+      if (!user) {
+        showToast("Please sign in with your Google account to reserve seats.", "warning");
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 1200);
+        return;
+      }
+
+      const seatIdsArray = Array.from(selectedSeatIds);
+      if (seatIdsArray.length === 0) return;
+
+      const reserveBtn = document.getElementById("reserveBtn");
+      reserveBtn.disabled = true;
+      reserveBtn.innerText = "🔒 Locking Seats & Reserving...";
+
+      try {
+        const res = await authFetch("/api/bookings/reserve", {
+          method: "POST",
+          body: JSON.stringify({
+            user_id: user.id,
+            event_id: eventId,
+            seat_ids: seatIdsArray,
+            reservation_duration_minutes: 5
+          })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          showToast("Seats locked and reserved for 5 minutes! Proceeding to checkout...", "success");
+          setTimeout(() => {
+            window.location.href = `checkout.html?booking_id=${data.booking_id}`;
+          }, 800);
+        } else {
+          showToast(data.detail || data.message || "Reservation failed.", "danger");
+          reserveBtn.disabled = false;
+          reserveBtn.innerText = "🔒 Reserve & Proceed to Pay →";
+          // Refresh seat grid to reflect latest states
+          loadEventAndSeats();
+        }
+      } catch (err) {
+        showToast("Lock engine connection error: " + err.message, "danger");
+        reserveBtn.disabled = false;
+        reserveBtn.innerText = "🔒 Reserve & Proceed to Pay →";
+      }
+    }
+
+    // Auto-refresh seat layout every 8 seconds to reflect other concurrent bookings
+    loadEventAndSeats();
+    setInterval(loadEventAndSeats, 8000);
+  </script>
+</body>
+</html>

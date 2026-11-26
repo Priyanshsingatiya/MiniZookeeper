@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Bookings & Tickets - Mini ZooKeeper</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+
+  <div class="container" style="max-width: 900px; margin: 2rem auto; padding: 0 1.5rem;">
+    <!-- Page Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1 style="font-size: 1.75rem; font-weight: 800; color: #0f172a; margin-bottom: 0.25rem;">🎟️ My Confirmed Tickets</h1>
+        <p style="font-size: 0.95rem; color: #64748b;">
+          View your event reservations, download tickets, and access your verified scannable QR admission codes.
+        </p>
+      </div>
+      <div>
+        <a href="events.html" class="btn btn-primary" style="padding: 0.5rem 1rem;">
+          + Browse More Events
+        </a>
+      </div>
+    </div>
+
+    <!-- Bookings List Container -->
+    <div id="bookingsListContainer">
+      <div class="state-box">
+        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⏳</div>
+        <div>Loading your tickets...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/booking-common.js"></script>
+  <script>
+    renderNavbar("bookings");
+
+    async function loadMyBookings() {
+      const user = getUser();
+      if (!user) {
+        document.getElementById("bookingsListContainer").innerHTML = `
+          <div class="card" style="padding: 3rem; text-align: center; border-radius: 12px;">
+            <div style="font-size: 2.5rem; margin-bottom: 1rem;">🔒</div>
+            <h3 style="margin-bottom: 0.5rem;">Please Sign In</h3>
+            <p style="color: #64748b; margin-bottom: 1.5rem;">You need to sign in to access your booked tickets and QR codes.</p>
+            <a href="login.html" class="btn btn-primary">Sign In with Google</a>
+          </div>
+        `;
+        return;
+      }
+
+      try {
+        const res = await authFetch(`/api/users/${user.id}/bookings`);
+        if (!res.ok) throw new Error("Failed to load bookings");
+        const bookings = await res.json();
+
+        renderBookings(bookings);
+      } catch (err) {
+        document.getElementById("bookingsListContainer").innerHTML = `
+          <div class="state-box" style="color: #dc2626;">
+            <p>Error loading bookings: ${err.message}</p>
+            <button onclick="loadMyBookings()" class="btn btn-secondary">Retry</button>
+          </div>
+        `;
+      }
+    }
+
+    function renderBookings(bookings) {
+      const container = document.getElementById("bookingsListContainer");
+
+      if (bookings.length === 0) {
+        container.innerHTML = `
+          <div class="card" style="padding: 3rem; text-align: center; border-radius: 12px;">
+            <div style="font-size: 2.5rem; margin-bottom: 1rem;">🎫</div>
+            <h3 style="margin-bottom: 0.5rem;">No Tickets Found</h3>
+            <p style="color: #64748b; margin-bottom: 1.5rem;">You haven't reserved or booked any event tickets yet.</p>
+            <a href="events.html" class="btn btn-primary">Browse Upcoming Events</a>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = bookings.map(b => {
+        const isConfirmed = b.booking_status === "CONFIRMED";
+        const qrUrl = `/api/bookings/${b.id}/ticket-qr`;
+
+        return `
+          <div class="ticket-container">
+            <div class="ticket-header">
+              <div>
+                <span class="badge ${isConfirmed ? 'badge-success' : 'badge-warning'}" style="font-size: 0.8rem; margin-bottom: 0.4rem; display: inline-block;">
+                  ${b.booking_status}
+                </span>
+                <h2 style="font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-top: 0.25rem;">
+                  ${escapeHtml(b.event_title || "Event Ticket")}
+                </h2>
+                <div style="font-size: 0.85rem; color: #64748b;">
+                  Ref: <strong style="color: #2563eb;">${escapeHtml(b.booking_reference)}</strong>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 0.8rem; color: #64748b;">Amount Paid</div>
+                <div style="font-size: 1.35rem; font-weight: 800; color: #16a34a;">
+                  $${parseFloat(b.total_amount).toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+              <div style="flex: 1; min-width: 240px;">
+                <div style="margin-bottom: 0.75rem;">
+                  <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Event Date & Time</div>
+                  <div style="font-weight: 700; color: #1e293b;">📅 ${formatDate(b.event_date)}</div>
+                </div>
+
+                <div style="margin-bottom: 0.75rem;">
+                  <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Venue</div>
+                  <div style="font-weight: 700; color: #1e293b;">📍 ${escapeHtml(b.venue || "TBD")}</div>
+                </div>
+
+                <div style="margin-bottom: 0.75rem;">
+                  <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Allocated Seats</div>
+                  <div style="font-weight: 800; color: #2563eb; font-size: 1.15rem;">
+                    💺 ${escapeHtml(b.seats.join(", "))}
+                  </div>
+                </div>
+
+                <div class="no-print" style="margin-top: 1.25rem;">
+                  <button onclick="window.print()" class="btn btn-sm btn-secondary">
+                    🖨️ Print Ticket
+                  </button>
+                </div>
+              </div>
+
+              <!-- Ticket Scannable QR Code -->
+              ${isConfirmed ? `
+                <div style="text-align: center;">
+                  <div class="ticket-qr-frame">
+                    <img src="${qrUrl}" alt="Ticket Admission QR" class="ticket-qr-img">
+                  </div>
+                  <div style="font-size: 0.75rem; color: #64748b; font-weight: 600;">
+                    SCAN AT ENTRANCE
+                  </div>
+                </div>
+              ` : `
+                <div style="text-align: center; padding: 1.5rem; background: #fffbeb; border-radius: 8px;">
+                  <div style="color: #b45309; font-weight: 600; font-size: 0.9rem;">Payment Pending</div>
+                  <a href="checkout.html?booking_id=${b.id}" class="btn btn-sm btn-primary" style="margin-top: 0.5rem;">
+                    Complete Payment
+                  </a>
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    loadMyBookings();
+  </script>
+</body>
+</html>

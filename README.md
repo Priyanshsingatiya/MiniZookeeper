@@ -1,9 +1,157 @@
-# Mutex.io: Distributed Lock Service
+# Mini ZooKeeper: Distributed Lock Engine & Event Ticket Booking Platform
 
 **Founding Team:** Priyansh Singatiya & Kapil Poddar  
-**Domain:** Distributed Systems & Infrastructure  
+**Domain:** Distributed Systems, Concurrency Control & Event Infrastructure  
 
-Mutex.io is a lightweight, zero-ops distributed lock service built for high-throughput e-commerce flash sales and data engineering pipelines. This MVP guarantees atomic mutual exclusion to prevent double-booking and cron job collisions, delivering crash-safe coordination without the heavy infrastructure footprint of Apache Zookeeper.
+Mini ZooKeeper is a distributed concurrency-safe event ticket booking platform powered by an OS-level file locking engine (`fcntl.flock`). It guarantees strict mathematical mutual exclusion during flash-sale seat reservations, completely eliminating race conditions and double-bookings without the complex infrastructure overhead of heavy external clusters.
+
+---
+
+# The Problem We Solve
+When hundreds of customers click to reserve the last remaining seats simultaneously, traditional web backends suffer from critical race conditions:
+1. **Double Booking / Overselling:** Two threads read `available = True` concurrently and both create conflicting tickets.
+2. **Deadlocks:** Multi-seat bookings lock resources in different orders, freezing the worker pool.
+3. **Database Contention:** Database row-level locks exhaust connection pools under flash-sale traffic spikes.
+
+### The Solution: Two-Tier Concurrency Architecture
+Mini ZooKeeper separates **short-lived operational locking** from **long-lived business reservations**:
+- **Tier 1: OS-Level Mutual Exclusion Lock (`fcntl.flock`):** A centralized, non-blocking / short-timeout OS file lock held strictly for the milliseconds (~15ms) needed to check seat inventory and create the pending reservation. Locks are acquired in **deterministic sorted order** to mathematically prevent deadlocks.
+- **Tier 2: Business Reservation Lease (`reserved_until`):** Once written to the database, the OS lock is immediately released. The customer has a **5-minute hold timer** to complete payment. If payment succeeds, seats transition permanently to `SOLD`. If payment fails or times out, background cleanup returns seats to `AVAILABLE`.
+
+---
+
+# System Architecture & File Structure
+
+```
+MiniZookeeper/
+├── frontend/
+│   ├── login.html             # Google OAuth & Viva Evaluator demo login
+│   ├── events.html            # Event catalog with search & availability badges
+│   ├── event-details.html     # Interactive theater seating grid (Available, Reserved, Sold)
+│   ├── checkout.html          # Order review & 5-minute live countdown timer
+│   ├── my-bookings.html       # Customer booking history & scannable QR code tickets
+│   ├── organizer.html         # Organizer dashboard, revenue telemetry & live lock monitor
+│   ├── index.html             # Original Mini ZooKeeper core lock manager UI
+│   ├── analytics.html         # Frontend B: Performance analytics & charts
+│   ├── activity.html          # Frontend B: Real-time telemetry activity logs
+│   ├── css/
+│   │   └── style.css          # Unified CSS styling (theaters, badges, timers, cards)
+│   └── js/
+│       ├── booking-common.js  # JWT session, authFetch, navbar rendering, toast alerts
+│       ├── activity.js        # Activity log fetching & table rendering
+│       └── analytics.js       # Metric cards & Matplotlib chart display
+├── src/
+│   ├── lock_manager.py        # Core OS-level locking engine (fcntl.flock, crash recovery)
+│   ├── lock_adapter.py        # Safe REST API adapter layer & FastAPI unified server
+│   ├── database.py            # SQLite WAL / PostgreSQL ACID models & atomic services
+│   ├── auth.py                # Role verification, JWT tokens, approved organizer whitelist
+│   ├── telemetry.py           # Process-safe event logging & CSV/JSON audit export
+│   ├── analysis.py            # Contention analytics, percentiles & analytics router
+│   └── benchmark.py           # Multi-process stress-testing & chart generation
+├── tests/
+│   ├── test_e2e_booking_platform.py  # Complete 12-step end-to-end platform integration test
+│   ├── test_seat_concurrency.py       # High-concurrency race condition verification
+│   ├── test_events_phase4.py          # Event management, metadata updates & posters
+│   ├── test_payment_workflow.py       # Payment verification, QR code tickets & metrics
+│   ├── test_database.py               # ACID transaction tests & inventory constraints
+│   ├── test_auth.py                   # Role-based access control & token security
+│   ├── test_core_locking.py           # Core viva locking scenarios
+│   ├── test_basic_locking.py          # Basic acquire/release checks
+│   ├── test_timeout_and_ownership.py  # Timeouts and token security
+│   ├── test_reliability.py            # Crash recovery & input validation
+│   ├── test_lock_adapter.py           # Adapter & REST API tests
+│   ├── test_telemetry.py              # CSV & concurrency tests
+│   ├── test_analysis.py               # Metrics & percentiles tests
+│   ├── test_benchmark.py              # Benchmark & chart tests
+│   ├── test_api.py                    # Analytics API endpoints
+│   └── test_integration.py            # Original integration test
+└── data/
+    └── minizookeeper.db               # SQLite database with Write-Ahead Logging (WAL)
+```
+
+---
+
+# Roles & Access Control
+
+| Role | Verification Method | Permissions |
+| :--- | :--- | :--- |
+| **ORGANIZER** | Verified server-side against approved whitelist (`kapilpoddar99999@gmail.com`, `priyanshsingatiya07@gmail.com`, `admin@zookeeper.com`) | Create events, upload posters, edit events, publish/unpublish, view revenue KPIs, and monitor real-time distributed locks. |
+| **CUSTOMER** | Any other authenticated Google account | Browse published events, select individual seats on live visual grid, reserve seats (5-min hold), pay, and download QR tickets. |
+
+---
+
+# Event Ticket Booking API Endpoints
+
+### 1. Authentication (`/api/auth`)
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/auth/login` | Google login / demo login. Server decides role and returns signed JWT access token. |
+| `GET` | `/api/auth/me` | Returns profile and role of authenticated user. |
+| `GET` | `/api/auth/organizers` | Lists whitelisted organizer email addresses. |
+
+### 2. Events & Posters (`/api/events`)
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/events` | List events with real-time seat availability (`?status=PUBLISHED` or `ALL`). |
+| `POST` | `/api/events` | Create new event and auto-generate seat rows. *(Organizer only)* |
+| `GET` | `/api/events/{id}` | Full event details with seat breakdown counts. |
+| `PUT` | `/api/events/{id}` | Update title, venue, price, date, or poster. *(Organizer only)* |
+| `PATCH` | `/api/events/{id}/status`| Toggle status (`PUBLISHED` / `DRAFT` / `UNPUBLISHED`). *(Organizer only)* |
+| `POST` | `/api/events/{id}/poster`| Upload event poster image. *(Organizer only)* |
+| `GET` | `/api/events/{id}/poster`| Stream event poster image file with proper MIME type. |
+| `GET` | `/api/events/{id}/seats` | Real-time seat layout grid (`AVAILABLE`, `RESERVED`, `SOLD`). |
+| `POST` | `/api/events/seed` | Auto-seed 4 realistic sample events into database. |
+
+### 3. Bookings & Seat Locking Engine (`/api/bookings`)
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/bookings/reserve` | **Protected by Mini ZooKeeper Lock.** Acquires OS lock (`event_{id}_seat_{id}`), verifies DB availability, sets `RESERVED` with 5-minute lease, and immediately releases OS lock. |
+| `POST` | `/api/bookings/{id}/pay`| Verifies payment (Mock / Razorpay Test Mode) and transitions seats to `SOLD`. |
+| `GET` | `/api/bookings/{id}` | Booking reference, user, event, and reserved seats. |
+| `GET` | `/api/bookings/{id}/ticket-qr` | Generates verified scannable PNG QR code ticket. |
+| `GET` | `/api/users/{id}/bookings` | Customer's complete ticket booking history. |
+| `POST` | `/api/bookings/cleanup-expired`| Background cleaner returning expired reserved seats back to `AVAILABLE`. |
+
+### 4. Organizer Analytics & Monitoring (`/api/organizer`)
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/organizer/analytics` | Revenue KPI summary, sold/reserved/available seats, occupancy rate, active OS locks, and recent transactions. |
+
+---
+
+# Running the Application
+
+### 1. Start the Unified Server
+```bash
+python3 -m uvicorn src.lock_adapter:app --host 0.0.0.0 --port 8000
+```
+
+### 2. Open Web Pages in Browser
+- **Events Catalog (Customer View):** `http://localhost:8000/frontend/events.html`
+- **Sign In Page:** `http://localhost:8000/frontend/login.html`
+- **Organizer Dashboard:** `http://localhost:8000/frontend/organizer.html`
+- **Customer Tickets:** `http://localhost:8000/frontend/my-bookings.html`
+- **Original Lock Dashboard:** `http://localhost:8000/frontend/index.html`
+- **Interactive OpenAPI Documentation:** `http://localhost:8000/docs`
+
+---
+
+# Running Tests
+
+Run the complete 59-test suite (covers core locks, concurrency, auth, database, payments, and E2E integration):
+```bash
+python3 -m unittest discover tests -v
+```
+
+Run the high-concurrency race condition test specifically:
+```bash
+python3 -m unittest -v tests/test_seat_concurrency.py
+```
+
+Run the end-to-end integration test:
+```bash
+python3 -m unittest -v tests/test_e2e_booking_platform.py
+```
 
 ---
 

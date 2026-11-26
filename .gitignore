@@ -13,3 +13,13 @@ locks_data/
 # Testing artifacts
 .pytest_cache/
 tests/temp_*
+
+# SQLite database files
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Uploaded resource testing files
+uploaded_resources/*
+!uploaded_resources/.gitkeep
+!uploaded_resources/posters/.gitkeep
