@@ -127,8 +127,7 @@ try:
         decode_access_token,
         get_current_user,
         require_organizer,
-        require_customer,
-        get_approved_organizers
+        require_customer
     )
 except ImportError:
     from src.auth import (
@@ -137,8 +136,7 @@ except ImportError:
         decode_access_token,
         get_current_user,
         require_organizer,
-        require_customer,
-        get_approved_organizers
+        require_customer
     )
 
 
@@ -234,11 +232,6 @@ class SaveResourceRequest(BaseModel):
     lock_handle: str = Field(..., description="Secret lock handle required to edit")
 
 
-class CreateUserRequest(BaseModel):
-    name: str = Field(..., description="Full name of user")
-    email: str = Field(..., description="Email address")
-    role: Optional[str] = Field(default="CUSTOMER", description="ORGANIZER or CUSTOMER")
-    google_id: Optional[str] = Field(default=None, description="Google OAuth subject ID")
 
 
 class CreateEventRequest(BaseModel):
@@ -565,28 +558,6 @@ if FASTAPI_AVAILABLE:
             "google_id": current_user.google_id
         }
 
-    @app.get("/api/auth/organizers")
-    def endpoint_auth_organizers():
-        """Lists approved organizer emails."""
-        return {"approved_organizers": sorted(list(get_approved_organizers()))}
-
-    @app.post("/api/users")
-    def endpoint_create_or_get_user(payload: CreateUserRequest, db: Session = Depends(get_db)):
-        """Creates or fetches a user with role (ORGANIZER or CUSTOMER)."""
-        user = create_or_get_user(
-            db=db,
-            email=payload.email,
-            name=payload.name,
-            google_id=payload.google_id,
-            role=payload.role
-        )
-        return {
-            "id": user.id,
-            "name": user.name,
-            "email": user.email,
-            "role": user.role,
-            "google_id": user.google_id
-        }
 
     # -------------------------------------------------------------------------
     # Event Management Endpoints (Phase 4 - Protected by Organizer Role)

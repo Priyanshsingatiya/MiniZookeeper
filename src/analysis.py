@@ -133,22 +133,6 @@ def analyze_logs(filepath="data/locks.csv"):
     return calculate_metrics(logs)
 
 
-def print_summary(metrics):
-    """Prints a clean, formatted report of the metrics to the console."""
-    print("=" * 45)
-    print("       MINI ZOOKEEPER - METRICS REPORT       ")
-    print("=" * 45)
-    print(f"Total Requests:           {metrics['total_requests']}")
-    print(f"Successful Acquisitions:  {metrics['successful_acquisitions']}")
-    print(f"Released Locks:           {metrics['released_locks']}")
-    print(f"Timed-out Requests:       {metrics['timed_out_requests']}")
-    print(f"Timeout Rate:             {metrics['timeout_rate_pct']}%")
-    print("-" * 45)
-    print(f"Average Wait Time:        {metrics['avg_wait_ms']} ms")
-    print(f"Median Wait Time:         {metrics['median_wait_ms']} ms")
-    print(f"95th Percentile Wait:     {metrics['p95_wait_ms']} ms")
-    print(f"Average Hold Time:        {metrics['avg_hold_ms']} ms")
-    print("=" * 45)
 
 
 # =====================================================================

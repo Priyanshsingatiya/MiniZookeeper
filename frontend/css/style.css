@@ -141,7 +141,7 @@ a {
 }
 
 a:hover {
-  color: #a78bfa;
+  color: var(--purple-hover);
 }
 
 /* Container */
