@@ -94,6 +94,26 @@
   --shadow-glow: 0 0 20px rgba(234, 88, 12, 0.22);
 }
 
+/* Light Theme Overrides for Components */
+[data-theme="light"] .terminal-card {
+  background: var(--card-inner);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .terminal-header {
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+[data-theme="light"] .terminal-body {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .modal-overlay {
+  background: rgba(41, 37, 36, 0.65);
+}
+
 /* --------------------------------------------------------------------------
    2. Reset & Global Base
    -------------------------------------------------------------------------- */
@@ -292,7 +312,7 @@ a:hover {
 }
 
 .card:hover {
-  border-color: #353952;
+  border-color: var(--purple-primary);
 }
 
 .card-header-clean {
@@ -348,9 +368,9 @@ a:hover {
 }
 
 .btn-secondary:hover {
-  background: #25283d;
+  background: var(--card-hover);
   border-color: var(--purple-primary);
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .btn-sm {
@@ -406,22 +426,22 @@ a:hover {
    -------------------------------------------------------------------------- */
 .ticket-card {
   background: var(--card-bg);
-  border: 1px solid #282b3f;
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 1.75rem;
   margin-bottom: 1.25rem;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-sm);
   position: relative;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .ticket-card:hover {
   transform: translateY(-2px);
-  border-color: #3b3f5c;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  border-color: var(--purple-primary);
+  box-shadow: var(--shadow-md);
 }
 
 .ticket-main {
@@ -433,8 +453,8 @@ a:hover {
 
 /* Date Box */
 .ticket-date-box {
-  background: #191c2b;
-  border: 1px solid #2a2e46;
+  background: var(--card-inner);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   text-align: center;
@@ -445,7 +465,7 @@ a:hover {
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--purple-primary);
   letter-spacing: 1px;
 }
 
@@ -478,9 +498,9 @@ a:hover {
 
 .seat-row-badge {
   display: inline-block;
-  background: rgba(139, 92, 246, 0.2);
-  color: #c084fc;
-  border: 1px solid rgba(139, 92, 246, 0.45);
+  background: var(--purple-subtle);
+  color: var(--purple-primary);
+  border: 1px solid var(--purple-glow);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.5px;
@@ -522,7 +542,7 @@ a:hover {
   align-items: center;
   justify-content: center;
   padding-left: 2rem;
-  border-left: 2px dashed #282b3f;
+  border-left: 2px dashed var(--border-color);
   min-width: 170px;
 }
 
@@ -530,8 +550,8 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
+  background: var(--green-subtle);
+  color: var(--green-primary);
   border: 1px solid rgba(34, 197, 94, 0.35);
   padding: 0.2rem 0.65rem;
   border-radius: var(--radius-full);
@@ -544,8 +564,8 @@ a:hover {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #22c55e;
-  box-shadow: 0 0 6px #22c55e;
+  background-color: var(--green-primary);
+  box-shadow: 0 0 6px var(--green-primary);
 }
 
 .ticket-qr-frame {
@@ -558,7 +578,8 @@ a:hover {
   align-items: center;
   justify-content: center;
   margin-bottom: 0.75rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
 }
 
 .ticket-qr-frame img {
@@ -568,9 +589,9 @@ a:hover {
 }
 
 .ticket-btn-action {
-  background: #1c1f30;
-  border: 1px solid #2e334d;
-  color: var(--text-secondary);
+  background: var(--card-inner);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
   font-size: 0.8rem;
   font-weight: 600;
   padding: 0.4rem 1.15rem;
@@ -582,7 +603,7 @@ a:hover {
 }
 
 .ticket-btn-action:hover {
-  background: #252940;
+  background: var(--purple-primary);
   border-color: var(--purple-primary);
   color: #ffffff;
 }
@@ -630,9 +651,9 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(139, 92, 246, 0.15);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  color: #c084fc;
+  background: var(--purple-subtle);
+  border: 1px solid var(--purple-glow);
+  color: var(--purple-primary);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.2rem 0.6rem;
@@ -643,8 +664,8 @@ a:hover {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #a855f7;
-  box-shadow: 0 0 6px #a855f7;
+  background: var(--purple-primary);
+  box-shadow: 0 0 6px var(--purple-glow);
 }
 
 .latency-canvas-container {
@@ -686,8 +707,8 @@ a:hover {
 }
 
 .node-item.leader {
-  background: rgba(124, 58, 237, 0.15);
-  border-color: rgba(139, 92, 246, 0.5);
+  background: var(--purple-subtle);
+  border-color: var(--purple-glow);
 }
 
 .node-name {
@@ -706,7 +727,7 @@ a:hover {
 }
 
 .node-role-badge.leader {
-  background: #7c3aed;
+  background: var(--purple-primary);
   color: #ffffff;
 }
 
@@ -822,15 +843,15 @@ a:hover {
 
 .event-card:hover {
   transform: translateY(-4px);
-  border-color: #383d5a;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+  border-color: var(--purple-primary);
+  box-shadow: var(--shadow-md);
 }
 
 .event-poster {
   width: 100%;
   height: 175px;
   object-fit: cover;
-  background-color: #121420;
+  background-color: var(--card-inner);
 }
 
 .event-card-body {
@@ -880,7 +901,7 @@ a:hover {
 .event-price {
   font-size: 1.25rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 /* --------------------------------------------------------------------------
@@ -897,8 +918,8 @@ a:hover {
 }
 
 .screen-indicator {
-  background: linear-gradient(180deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.05) 100%);
-  color: #c084fc;
+  background: linear-gradient(180deg, var(--purple-subtle) 0%, rgba(139, 92, 246, 0.05) 100%);
+  color: var(--purple-primary);
   font-weight: 800;
   letter-spacing: 2.5px;
   text-transform: uppercase;
@@ -908,7 +929,7 @@ a:hover {
   width: 65%;
   margin: 0 auto 2.5rem auto;
   border-bottom: 2px solid var(--purple-primary);
-  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.25);
+  box-shadow: 0 4px 20px var(--purple-glow);
 }
 
 .seating-grid {
@@ -1218,7 +1239,7 @@ a:hover {
 
 .timeline-card:hover {
   transform: translateY(-2px);
-  border-color: #3b3f5c;
+  border-color: var(--purple-primary);
   box-shadow: var(--shadow-md);
 }
 
@@ -1681,7 +1702,7 @@ a:hover {
 .metric-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
-  border-color: #3b3f5c;
+  border-color: var(--purple-primary);
 }
 
 .metric-label {

@@ -20,7 +20,7 @@
     <!-- Event Header Card -->
     <div id="eventHeaderCard" class="card" style="margin-bottom: 2rem; background: var(--card-bg); border-color: var(--border-color);">
       <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-start;">
-        <img id="eventPosterImg" src="" alt="Event Poster" style="width: 240px; height: 160px; object-fit: cover; border-radius: var(--radius-md); background: #121420;" onerror="this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800'">
+        <img id="eventPosterImg" src="" alt="Event Poster" style="width: 240px; height: 160px; object-fit: cover; border-radius: var(--radius-md); background: var(--card-inner);" onerror="this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800'">
         <div style="flex: 1; min-width: 280px;">
           <h1 id="eventTitle" style="font-size: 1.75rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.5rem;">Loading Event...</h1>
           <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; color: var(--text-secondary); font-size: 0.95rem;">
@@ -74,7 +74,7 @@
     </div>
 
     <!-- Booking Summary & Action Bar -->
-    <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-color: #383d5a;">
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-color: var(--border-color);">
       <div>
         <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Selected Seats</div>
         <div id="selectedSeatsLabel" style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); margin-top: 0.2rem;">

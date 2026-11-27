@@ -43,7 +43,7 @@
     .kpi-card:hover {
       transform: translateY(-2px);
       box-shadow: var(--shadow-md);
-      border-color: #3b3f5c;
+      border-color: var(--purple-primary);
     }
     .kpi-label {
       font-size: 0.8rem;
@@ -250,9 +250,9 @@
           <div class="latency-canvas-container" style="height: 240px;">
             <canvas id="latencyCanvas" width="580" height="240" style="width: 100%; height: 100%;"></canvas>
             <!-- Hover Tooltip -->
-            <div id="canvasTooltip" style="position: absolute; top: 38px; left: 340px; background: rgba(22, 24, 38, 0.95); border: 1px solid #4a3e75; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; color: #f1f5f9; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 6px;">
+            <div id="canvasTooltip" style="position: absolute; top: 38px; left: 340px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; color: var(--text-primary); pointer-events: none; box-shadow: var(--shadow-md); display: flex; align-items: center; gap: 6px;">
               <span style="color: var(--text-muted);">Tooltip</span>
-              <span style="color: #c084fc; font-weight: 700;">● Rate: 500ms</span>
+              <span style="color: var(--purple-primary); font-weight: 700;">● Rate: 500ms</span>
             </div>
           </div>
         </div>

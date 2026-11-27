@@ -160,7 +160,7 @@ function renderNavbar(activePage = "") {
                   <a href="analytics.html" style="display: flex; align-items: center; gap: 8px; padding: 0.55rem 1rem; font-size: 0.85rem; color: var(--text-secondary);">📊 System Analytics</a>
                   <a href="activity.html" style="display: flex; align-items: center; gap: 8px; padding: 0.55rem 1rem; font-size: 0.85rem; color: var(--text-secondary);">📋 Activity Audit Logs</a>
                   <div style="border-top: 1px solid var(--border-subtle); margin: 0.35rem 0;"></div>
-                  <button onclick="switchToCustomer()" style="width: 100%; text-align: left; background: none; border: none; padding: 0.55rem 1rem; font-size: 0.85rem; color: #38bdf8; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  <button onclick="switchToCustomer()" style="width: 100%; text-align: left; background: none; border: none; padding: 0.55rem 1rem; font-size: 0.85rem; color: var(--cyan-primary); font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                     👤 Switch to Customer Role
                   </button>
                 ` : `
@@ -171,7 +171,7 @@ function renderNavbar(activePage = "") {
                   </button>
                 `}
                 <div style="border-top: 1px solid var(--border-subtle); margin: 0.35rem 0;"></div>
-                <button onclick="logout()" style="width: 100%; text-align: left; background: none; border: none; padding: 0.55rem 1rem; font-size: 0.85rem; color: #ef4444; cursor: pointer; display: flex; align-items: center; gap: 6px;">🚪 Sign Out</button>
+                <button onclick="logout()" style="width: 100%; text-align: left; background: none; border: none; padding: 0.55rem 1rem; font-size: 0.85rem; color: var(--red-primary); cursor: pointer; display: flex; align-items: center; gap: 6px;">🚪 Sign Out</button>
               </div>
             </div>
           ` : `

@@ -59,6 +59,9 @@
       z-index: 99999;
       padding: 1rem;
     }
+    [data-theme="light"] .modal-overlay {
+      background: rgba(41, 37, 36, 0.65);
+    }
     .modal-overlay.active {
       display: flex;
     }
@@ -266,11 +269,11 @@
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
             <span style="color: var(--text-muted);">Allocated Seat:</span>
-            <strong style="color: #c084fc;">${escapeHtml(b.seats ? b.seats.join(", ") : "Row 3, Seat 14")}</strong>
+            <strong style="color: var(--purple-primary);">${escapeHtml(b.seats ? b.seats.join(", ") : "Row 3, Seat 14")}</strong>
           </div>
           <div style="display: flex; justify-content: space-between;">
             <span style="color: var(--text-muted);">Total Paid:</span>
-            <strong style="color: #4ade80;">$${parseFloat(b.total_amount).toFixed(2)}</strong>
+            <strong style="color: var(--green-primary);">$${parseFloat(b.total_amount).toFixed(2)}</strong>
           </div>
         </div>
         <button onclick="window.print()" class="btn btn-primary" style="width: 100%;">
