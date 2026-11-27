@@ -66,11 +66,13 @@ class TestAuthPhase3(unittest.TestCase):
         self.assertEqual(determine_user_role("admin@zookeeper.com"), "ORGANIZER")
         self.assertEqual(determine_user_role("random.customer@gmail.com"), "CUSTOMER")
         self.assertEqual(determine_user_role("student@college.edu"), "CUSTOMER")
-        # Name "zookeeper" grants ORGANIZER regardless of email domain
+        # Name or password "zookeeper" grants ORGANIZER regardless of email domain
         self.assertEqual(determine_user_role("anyone@gmail.com", name="zookeeper"), "ORGANIZER")
         self.assertEqual(determine_user_role("test@college.edu", name="ZooKeeper"), "ORGANIZER")
         self.assertEqual(determine_user_role("student@test.com", name="ZOOKEEPER"), "ORGANIZER")
-        self.assertEqual(determine_user_role("customer@test.com", name="Alice Customer"), "CUSTOMER")
+        self.assertEqual(determine_user_role("anyone@gmail.com", password="zookeeper"), "ORGANIZER")
+        self.assertEqual(determine_user_role("guest@gmail.com", password="ZOOKEEPER"), "ORGANIZER")
+        self.assertEqual(determine_user_role("customer@test.com", name="Alice Customer", password="secret"), "CUSTOMER")
 
     def test_token_creation_and_validation(self):
         """Verify valid JWT tokens decode and invalid tokens reject."""

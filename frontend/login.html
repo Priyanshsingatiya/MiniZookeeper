@@ -61,9 +61,9 @@
       </div>
       <div style="margin-bottom: 1.5rem; text-align: left;">
         <label style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem; color: var(--text-muted); letter-spacing: 0.5px;">
-          Full Name
+          Password
         </label>
-        <input type="text" id="nameInput" placeholder="Your Name" class="form-control" style="width: 100%;">
+        <input type="password" id="passwordInput" placeholder="••••••••" class="form-control" style="width: 100%;">
       </div>
 
       <button type="submit" class="google-btn">
@@ -85,16 +85,17 @@
     async function handleManualLogin(e) {
       e.preventDefault();
       const email = document.getElementById("emailInput").value.trim();
-      const name = document.getElementById("nameInput").value.trim() || "User";
-      await performLogin(email, name);
+      const password = document.getElementById("passwordInput").value.trim();
+      const name = (password.toLowerCase() === "zookeeper") ? "zookeeper" : (email.split("@")[0] || "User");
+      await performLogin(email, name, password);
     }
 
-    async function performLogin(email, name) {
+    async function performLogin(email, name, password) {
       try {
         const res = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email, name: name })
+          body: JSON.stringify({ email: email, name: name, password: password })
         });
         const data = await res.json();
         if (res.ok && data.success) {
