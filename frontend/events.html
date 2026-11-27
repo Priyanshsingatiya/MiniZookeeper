@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Events Catalog - Mini ZooKeeper Ticket Booking</title>
+  <title>Live Events - Mini ZooKeeper</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -11,16 +11,18 @@
 
   <div class="container" style="max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem;">
     <!-- Hero Banner -->
-    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; padding: 2.5rem 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+    <div style="background: linear-gradient(135deg, #151726 0%, #1a1d30 100%); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 2.25rem 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-md);">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">🎟️ Live Events & Ticket Reservations</h1>
-          <p style="font-size: 1rem; color: #94a3b8; max-width: 600px;">
-            Select your favorite event, choose individual seats from the live seating chart, and book with distributed locking concurrency protection.
+          <h1 style="font-size: 1.85rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">
+            🎟️ Live Events & Pass Reservations
+          </h1>
+          <p style="font-size: 0.95rem; color: var(--text-muted); max-width: 650px;">
+            Reserve seats with kernel-level distributed lock protection. Guaranteed zero double-booking under high-concurrency traffic.
           </p>
         </div>
         <div id="organizerQuickAction" style="display: none;">
-          <a href="organizer.html" class="btn btn-primary" style="padding: 0.65rem 1.25rem;">
+          <a href="organizer.html" class="btn btn-primary">
             + Create New Event
           </a>
         </div>
@@ -30,14 +32,14 @@
     <!-- Filter & Search Bar -->
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
       <div style="display: flex; gap: 0.75rem; align-items: center;">
-        <input type="text" id="searchInput" placeholder="Search events by title or venue..." onkeyup="filterEvents()" class="form-control" style="width: 320px; padding: 0.6rem 0.85rem; border: 1px solid #cbd5e1; border-radius: 6px;">
-        <span id="eventsCountBadge" class="badge badge-secondary" style="font-size: 0.85rem; padding: 0.4rem 0.75rem;">
+        <input type="text" id="searchInput" placeholder="Search events by title or venue..." onkeyup="filterEvents()" class="form-control" style="width: 320px;">
+        <span id="eventsCountBadge" class="badge badge-purple" style="padding: 0.4rem 0.8rem;">
           Loading events...
         </span>
       </div>
       <div>
         <button onclick="fetchEvents()" class="btn btn-sm btn-secondary">
-          🔄 Refresh
+          🔄 Refresh Catalog
         </button>
       </div>
     </div>
@@ -57,7 +59,6 @@
 
     let allEvents = [];
 
-    // Check if user is organizer to show create button
     const user = getUser();
     if (user && user.role === "ORGANIZER") {
       document.getElementById("organizerQuickAction").style.display = "block";
@@ -68,8 +69,7 @@
         const res = await fetch("/api/events?status=PUBLISHED");
         if (!res.ok) throw new Error("Failed to load events");
         allEvents = await res.json();
-        
-        // If empty, auto-seed sample events
+
         if (allEvents.length === 0) {
           const seedRes = await fetch("/api/events/seed", { method: "POST" });
           const seedData = await seedRes.json();
@@ -79,7 +79,7 @@
         renderEvents(allEvents);
       } catch (err) {
         document.getElementById("eventsGrid").innerHTML = `
-          <div class="state-box" style="grid-column: 1 / -1; color: #dc2626;">
+          <div class="state-box" style="grid-column: 1 / -1; color: #ef4444;">
             <p>Error loading events: ${err.message}</p>
             <button onclick="fetchEvents()" class="btn btn-primary" style="margin-top: 1rem;">Retry</button>
           </div>
@@ -117,22 +117,22 @@
                 <span>📍 ${escapeHtml(e.venue)}</span>
               </div>
               <p class="event-desc">${escapeHtml(e.description || "Join us for this exciting live event experience.")}</p>
-              
+
               <div style="margin-bottom: 1rem;">
-                <span class="badge ${isSoldOut ? 'badge-danger' : 'badge-success'}" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">
+                <span class="badge ${isSoldOut ? 'badge-red' : 'badge-green'}">
                   ${isSoldOut ? 'Sold Out' : `${availableSeats} Seats Available`}
                 </span>
-                <span style="font-size: 0.8rem; color: #64748b; margin-left: 0.5rem;">
+                <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.5rem;">
                   (Total: ${e.total_seats})
                 </span>
               </div>
 
               <div class="event-footer">
                 <div>
-                  <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase;">Ticket Price</div>
+                  <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Ticket Price</div>
                   <div class="event-price">$${parseFloat(e.ticket_price).toFixed(2)}</div>
                 </div>
-                <a href="event-details.html?id=${e.id}" class="btn ${isSoldOut ? 'btn-secondary' : 'btn-primary'}" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                <a href="event-details.html?id=${e.id}" class="btn btn-sm ${isSoldOut ? 'btn-secondary' : 'btn-primary'}">
                   ${isSoldOut ? 'View Layout' : 'Book Seats →'}
                 </a>
               </div>
@@ -144,14 +144,13 @@
 
     function filterEvents() {
       const q = document.getElementById("searchInput").value.toLowerCase();
-      const filtered = allEvents.filter(e => 
-        e.title.toLowerCase().includes(q) || 
+      const filtered = allEvents.filter(e =>
+        e.title.toLowerCase().includes(q) ||
         (e.venue && e.venue.toLowerCase().includes(q))
       );
       renderEvents(filtered);
     }
 
-    // Initialize
     fetchEvents();
   </script>
 </body>

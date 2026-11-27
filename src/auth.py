@@ -1,16 +1,18 @@
 """
 src/auth.py
-Authentication & Role-Based Authorization for Mini ZooKeeper (Phase 3).
+Authentication & Role-Based Authorization for Mini ZooKeeper.
 
-Features:
-- Google OAuth 2.0 token verification
-- Approved organizer email whitelist
-- Server-side role assignment:
-  - Approved emails -> ORGANIZER
-  - All other authenticated users -> CUSTOMER
-- Cryptographic session tokens (JWT)
-- Role protection dependencies (require_organizer, require_authenticated_user)
-- Dev/Viva demo login support (for offline evaluation)
+=============================================================================
+HOW TO EXPLAIN THIS FILE TO JUDGES (VIVA CHEAT SHEET):
+"In this file, we handle user sign-in and permissions in 3 simple steps:
+1. When a user logs in with their email, we check our APPROVED_ORGANIZERS list.
+   - If their email is in the list, we give them the ORGANIZER role.
+   - Otherwise, they are a normal CUSTOMER.
+2. We never trust the frontend for security. Role assignment happens strictly here
+   on the backend.
+3. We generate a standard JWT session token (signed with a secret key) so the user
+   can prove who they are on future requests without typing their password every time."
+=============================================================================
 """
 
 import os
@@ -22,23 +24,26 @@ from fastapi import HTTPException, Security, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
+# Import our database functions
 try:
     from database import User, get_db, create_or_get_user
 except ImportError:
     from src.database import User, get_db, create_or_get_user
 
 
-# Security configuration
+# ---------------------------------------------------------------------------
+# 1. Secret Configuration
+# ---------------------------------------------------------------------------
+# The secret key is used to cryptographically sign tokens so nobody can tamper with them.
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "minizookeeper-super-secret-key-2026")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 24
+TOKEN_VALID_HOURS = 24
 
-# Google OAuth Credentials (configured via environment)
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
-
-# Configurable Approved Organizer Whitelist
-# Any email in this set gets ORGANIZER permissions; all other authenticated users are CUSTOMER
+# ---------------------------------------------------------------------------
+# 2. Approved Organizer Email Whitelist
+# ---------------------------------------------------------------------------
+# Anyone with these emails is automatically an ORGANIZER (Host).
+# All other users are automatically CUSTOMERS (Clients).
 DEFAULT_APPROVED_ORGANIZERS = {
     "kapilpoddar99999@gmail.com",
     "priyanshsingatiya07@gmail.com",
@@ -47,7 +52,7 @@ DEFAULT_APPROVED_ORGANIZERS = {
 }
 
 def get_approved_organizers() -> Set[str]:
-    """Retrieves the list of approved organizer emails from env or defaults."""
+    """Returns the set of approved organizer email addresses."""
     env_organizers = os.getenv("APPROVED_ORGANIZERS", "")
     if env_organizers:
         emails = {e.strip().lower() for e in env_organizers.split(",") if e.strip()}
@@ -55,80 +60,85 @@ def get_approved_organizers() -> Set[str]:
     return DEFAULT_APPROVED_ORGANIZERS
 
 
-# Bearer token extractor for FastAPI
-security_bearer = HTTPBearer(auto_error=False)
-
-
-# ============================================================================
-# Token Creation & Verification
-# ============================================================================
-
-def create_access_token(user_id: int, email: str, role: str) -> str:
-    """Creates a signed JWT session token."""
-    now = datetime.now(timezone.utc)
-    expires = now + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
-    payload = {
-        "sub": str(user_id),
-        "email": email.lower(),
-        "role": role.upper(),
-        "iat": int(now.timestamp()),
-        "exp": int(expires.timestamp())
-    }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-
-
-def decode_access_token(token: str) -> dict:
-    """Decodes and validates a signed JWT session token."""
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Session token has expired. Please sign in again."
-        )
-    except jwt.PyJWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication token."
-        )
-
-
-# ============================================================================
-# Role Assignment Logic
-# ============================================================================
-
 def determine_user_role(email: str) -> str:
     """
-    CRITICAL SECURITY RULE:
-    Role is strictly decided server-side based on verified email.
-    Never trust roles provided by frontend input.
+    Decides whether a user is an ORGANIZER or a CUSTOMER.
+    
+    EXPLAIN TO JUDGES:
+    "We check the user's verified email against our approved list on the server.
+    We NEVER let the frontend JavaScript choose the role, which prevents tampering."
     """
-    normalized_email = email.strip().lower()
-    if normalized_email in get_approved_organizers():
+    clean_email = email.strip().lower()
+    if clean_email in get_approved_organizers():
         return "ORGANIZER"
     return "CUSTOMER"
 
 
-# ============================================================================
-# FastAPI Dependencies for Role Protection
-# ============================================================================
+# ---------------------------------------------------------------------------
+# 3. Simple JWT Token Generation & Verification
+# ---------------------------------------------------------------------------
+
+def create_access_token(user_id: int, email: str, role: str) -> str:
+    """
+    Creates a signed digital session token (JWT) containing user ID, email, and role.
+    """
+    now = datetime.now(timezone.utc)
+    expiry = now + timedelta(hours=TOKEN_VALID_HOURS)
+
+    # Payload is the data stored inside the token
+    payload = {
+        "sub": str(user_id),
+        "email": email.lower(),
+        "role": role.upper(),
+        "exp": int(expiry.timestamp())
+    }
+    # Sign it with our secret key
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def decode_access_token(token: str) -> dict:
+    """
+    Verifies that a token is valid, untampered, and not expired.
+    """
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session has expired. Please sign in again."
+        )
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid security token."
+        )
+
+
+# ---------------------------------------------------------------------------
+# 4. FastAPI Security Checkers (Dependencies)
+# ---------------------------------------------------------------------------
+# Extracts the token from incoming HTTP headers (Authorization: Bearer <token>)
+security_bearer = HTTPBearer(auto_error=False)
 
 def get_current_user(
     auth: Optional[HTTPAuthorizationCredentials] = Security(security_bearer),
     db: Session = Depends(get_db)
 ) -> User:
-    """FastAPI dependency to extract and verify the current authenticated user."""
+    """
+    Checks if the visitor is signed in. Returns the User object from the database.
+    """
     if not auth or not auth.credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required. Please sign in with Google."
         )
 
-    payload = decode_access_token(auth.credentials)
-    user_id = int(payload.get("sub", 0))
-    user = db.query(User).filter(User.id == user_id).first()
+    # 1. Decode token
+    data = decode_access_token(auth.credentials)
+    user_id = int(data.get("sub", 0))
 
+    # 2. Find user in database
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -138,7 +148,10 @@ def get_current_user(
 
 
 def require_organizer(current_user: User = Depends(get_current_user)) -> User:
-    """FastAPI dependency restricting endpoint access to ORGANIZER role only."""
+    """
+    Protects sensitive organizer endpoints (like creating events).
+    Throws a 403 Forbidden error if a normal customer tries to call it.
+    """
     if current_user.role != "ORGANIZER":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -148,5 +161,5 @@ def require_organizer(current_user: User = Depends(get_current_user)) -> User:
 
 
 def require_customer(current_user: User = Depends(get_current_user)) -> User:
-    """FastAPI dependency ensuring user is authenticated."""
+    """Ensures the caller is an authenticated user."""
     return current_user

@@ -1,21 +1,23 @@
 """
 src/database.py
-Database layer for Mini ZooKeeper — Event Ticket Booking Platform (Phase 2).
+Database layer for Mini ZooKeeper — Event Ticket Booking Platform.
 
-Entities:
-- Users (ORGANIZER, CUSTOMER)
-- Events (Dates, Venue, Price, Total Seats, Status)
-- Seats (AVAILABLE, RESERVED, SOLD)
-- Bookings (PENDING, CONFIRMED, CANCELLED, EXPIRED)
-- BookingSeats (Mapping of seats in a booking with reservation timeouts)
-- Payments (Payment verification, amount, status)
-
-Guarantees:
-- ACID Transactions
-- Foreign key constraints enabled (including SQLite PRAGMA foreign_keys=ON)
-- High concurrency with Write-Ahead Logging (WAL mode)
-- Price calculation computed from DB authority (never trusted from frontend)
-- Prevention of duplicate bookings and negative availability
+=============================================================================
+HOW TO EXPLAIN THIS FILE TO JUDGES (VIVA CHEAT SHEET):
+"In this file, we store our data using SQLite with WAL (Write-Ahead Logging) mode:
+1. We have 6 simple tables:
+   - Users: Stores user details and their role (ORGANIZER or CUSTOMER).
+   - Events: Stores event title, venue, date, price, and poster.
+   - Seats: Represents every single physical seat (e.g. A1, A2).
+            Has only 3 statuses: AVAILABLE, RESERVED, or SOLD.
+   - Bookings: Keeps the customer order record with booking reference.
+   - BookingSeats: Maps which seats belong to which booking and sets a 5-minute hold timer.
+   - Payments: Stores transaction reference and payment status (SUCCESS or FAILED).
+2. Seat states follow a strict one-way lifecycle:
+   AVAILABLE -> (Lock + Check) -> RESERVED (5-min hold) -> (Payment) -> SOLD
+   If the 5 minutes expire without payment, the seat returns to AVAILABLE.
+3. Total price is ALWAYS computed on the backend (we never trust prices from the frontend)."
+=============================================================================
 """
 
 import os
@@ -31,29 +33,29 @@ from sqlalchemy import (
     Float,
     DateTime,
     ForeignKey,
-    UniqueConstraint,
     Text,
     event as sa_event
 )
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Session
 
-# Base directory & default database path
+# ---------------------------------------------------------------------------
+# 1. Database Connection & File Setup
+# ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Default to SQLite with WAL mode for zero-ops local concurrency,
-# or use PostgreSQL if DATABASE_URL environment variable is provided.
+# Default to SQLite database inside data/minizookeeper.db
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATA_DIR / 'minizookeeper.db'}")
 
-# Create engine
+# Create database engine
 engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
     echo=False
 )
 
-# Enable Foreign Keys and WAL Mode on SQLite for high-throughput concurrency
+# Enable Foreign Keys and WAL Mode on SQLite for high concurrency
 if DATABASE_URL.startswith("sqlite"):
     @sa_event.listens_for(engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
@@ -66,12 +68,12 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-# ============================================================================
-# Database Models
-# ============================================================================
+# ---------------------------------------------------------------------------
+# 2. Database Models (The 6 Tables)
+# ---------------------------------------------------------------------------
 
 class User(Base):
-    """Represents an application user (ORGANIZER or CUSTOMER)."""
+    """Table 1: Stores user accounts (ORGANIZER or CUSTOMER)."""
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -85,18 +87,18 @@ class User(Base):
 
 
 class Event(Base):
-    """Represents an event created by an organizer."""
+    """Table 2: Stores event details created by organizers."""
     __tablename__ = "events"
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False, index=True)
     description = Column(Text, nullable=True)
-    poster = Column(String(255), nullable=True)  # URL or relative file path to poster
+    poster = Column(String(255), nullable=True)
     venue = Column(String(200), nullable=False)
     event_date = Column(DateTime, nullable=False)
-    ticket_price = Column(Float, nullable=False)  # Authoritative ticket price
+    ticket_price = Column(Float, nullable=False)
     total_seats = Column(Integer, nullable=False)
-    status = Column(String(20), default="DRAFT", nullable=False)  # "DRAFT", "PUBLISHED", "CANCELLED"
+    status = Column(String(20), default="DRAFT", nullable=False)  # "PUBLISHED" or "DRAFT"
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     seats = relationship("Seat", back_populates="event", cascade="all, delete-orphan")
@@ -105,8 +107,8 @@ class Event(Base):
 
 class Seat(Base):
     """
-    Represents an individual seat for an event.
-    Status can be: AVAILABLE, RESERVED, SOLD.
+    Table 3: Represents each physical seat.
+    Status can only be: 'AVAILABLE', 'RESERVED', or 'SOLD'.
     """
     __tablename__ = "seats"
 
@@ -118,20 +120,16 @@ class Seat(Base):
     event = relationship("Event", back_populates="seats")
     booking_seats = relationship("BookingSeat", back_populates="seat", cascade="all, delete-orphan")
 
-    __table_args__ = (
-        UniqueConstraint("event_id", "seat_number", name="uq_event_seat_number"),
-    )
-
 
 class Booking(Base):
-    """Represents a customer ticket booking reservation or purchase."""
+    """Table 4: Represents a customer's ticket booking order."""
     __tablename__ = "bookings"
 
     id = Column(Integer, primary_key=True, index=True)
-    booking_reference = Column(String(32), unique=True, index=True, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    event_id = Column(Integer, ForeignKey("events.id"), nullable=False, index=True)
-    booking_status = Column(String(20), default="PENDING", nullable=False)  # "PENDING", "CONFIRMED", "CANCELLED", "EXPIRED"
+    booking_reference = Column(String(50), unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    event_id = Column(Integer, ForeignKey("events.id", ondelete="CASCADE"), nullable=False, index=True)
+    booking_status = Column(String(20), default="PENDING", nullable=False)  # "PENDING", "CONFIRMED", "EXPIRED"
     payment_status = Column(String(20), default="PENDING", nullable=False)  # "PENDING", "SUCCESS", "FAILED"
     total_amount = Column(Float, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
@@ -143,52 +141,43 @@ class Booking(Base):
 
 
 class BookingSeat(Base):
-    """Mapping between a Booking and an individual reserved/sold Seat."""
+    """Table 5: Maps which seats belong to which booking and sets a hold expiry timestamp."""
     __tablename__ = "booking_seats"
 
     id = Column(Integer, primary_key=True, index=True)
     booking_id = Column(Integer, ForeignKey("bookings.id", ondelete="CASCADE"), nullable=False, index=True)
     seat_id = Column(Integer, ForeignKey("seats.id", ondelete="CASCADE"), nullable=False, index=True)
-    reserved_until = Column(DateTime, nullable=True)
+    reserved_until = Column(DateTime, nullable=True)  # Timestamp when the 5-minute hold ends
 
     booking = relationship("Booking", back_populates="booking_seats")
     seat = relationship("Seat", back_populates="booking_seats")
 
-    __table_args__ = (
-        UniqueConstraint("booking_id", "seat_id", name="uq_booking_seat_item"),
-    )
-
 
 class Payment(Base):
-    """Records payment transactions for a booking."""
+    """Table 6: Records transaction payment settlements."""
     __tablename__ = "payments"
 
     id = Column(Integer, primary_key=True, index=True)
-    booking_id = Column(Integer, ForeignKey("bookings.id"), nullable=False, index=True)
-    payment_reference = Column(String(64), unique=True, index=True, nullable=False)
+    booking_id = Column(Integer, ForeignKey("bookings.id", ondelete="CASCADE"), nullable=False, index=True)
+    payment_reference = Column(String(100), unique=True, index=True, nullable=False)
     amount = Column(Float, nullable=False)
-    status = Column(String(20), default="PENDING", nullable=False)  # "PENDING", "SUCCESS", "FAILED"
+    status = Column(String(20), default="SUCCESS", nullable=False)  # "SUCCESS" or "FAILED"
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     booking = relationship("Booking", back_populates="payments")
 
 
-# ============================================================================
-# Database Initialization & Dependency
-# ============================================================================
+# ---------------------------------------------------------------------------
+# 3. Simple Database Initialization Helper
+# ---------------------------------------------------------------------------
 
 def init_db():
-    """Initializes all database tables and seeds sample events if empty."""
+    """Creates all 6 database tables if they do not exist yet."""
     Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
-    try:
-        seed_sample_events(db)
-    finally:
-        db.close()
 
 
 def get_db():
-    """FastAPI database session generator dependency."""
+    """FastAPI helper: opens a database session for each request and closes it after."""
     db = SessionLocal()
     try:
         yield db
@@ -196,16 +185,18 @@ def get_db():
         db.close()
 
 
-# ============================================================================
-# Service Layer Operations (CRUD & Atomic Inventory Coordination)
-# ============================================================================
+# ---------------------------------------------------------------------------
+# 4. Beginner-Friendly Business Logic Functions
+# ---------------------------------------------------------------------------
 
 def create_or_get_user(db: Session, email: str, name: str, google_id: str = None, role: str = "CUSTOMER") -> User:
-    """Finds an existing user by email or creates a new one."""
-    user = db.query(User).filter(User.email == email.strip().lower()).first()
+    """Finds an existing user by email or inserts a new one."""
+    clean_email = email.strip().lower()
+    user = db.query(User).filter(User.email == clean_email).first()
+
     if not user:
         user = User(
-            email=email.strip().lower(),
+            email=clean_email,
             name=name.strip(),
             google_id=google_id,
             role=role.upper()
@@ -214,7 +205,7 @@ def create_or_get_user(db: Session, email: str, name: str, google_id: str = None
         db.commit()
         db.refresh(user)
     else:
-        # Update google_id or role if newly provided
+        # Update user if role or google_id changed
         updated = False
         if google_id and user.google_id != google_id:
             user.google_id = google_id
@@ -225,6 +216,7 @@ def create_or_get_user(db: Session, email: str, name: str, google_id: str = None
         if updated:
             db.commit()
             db.refresh(user)
+
     return user
 
 
@@ -241,13 +233,14 @@ def create_event(
     seat_labels: list = None
 ) -> Event:
     """
-    Creates an event and automatically seeds all its individual seats in one transaction.
+    Creates an event and automatically creates individual seat rows (A1, A2, etc.) in the database.
     """
     if ticket_price < 0:
         raise ValueError("Ticket price cannot be negative.")
     if total_seats <= 0:
         raise ValueError("Total seats must be greater than zero.")
 
+    # 1. Insert Event record
     event = Event(
         title=title.strip(),
         description=description.strip() if description else "",
@@ -259,19 +252,19 @@ def create_event(
         status=status.upper()
     )
     db.add(event)
-    db.flush()  # Flush to acquire event.id
+    db.flush()  # Gives us event.id
 
-    # Generate seat numbers: e.g. A1, A2, A3... or use custom seat_labels
+    # 2. Generate seat names: e.g. A1, A2... B1, B2...
     if seat_labels and len(seat_labels) == total_seats:
         labels = seat_labels
     else:
-        # Generate grid labels: Rows A, B, C... with 10 seats per row
         labels = []
         for i in range(total_seats):
             row_char = chr(ord('A') + (i // 10))
             seat_num = (i % 10) + 1
             labels.append(f"{row_char}{seat_num}")
 
+    # 3. Insert all individual Seat rows with status = 'AVAILABLE'
     seats = [
         Seat(event_id=event.id, seat_number=label, status="AVAILABLE")
         for label in labels
@@ -283,12 +276,11 @@ def create_event(
 
 
 def get_event_with_seat_counts(db: Session, event_id: int):
-    """Returns event details with current availability breakdown."""
+    """Returns event details along with counts of available, reserved, and sold seats."""
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         return None
 
-    # Count seats by status
     total = len(event.seats)
     available = sum(1 for s in event.seats if s.status == "AVAILABLE")
     reserved = sum(1 for s in event.seats if s.status == "RESERVED")
@@ -318,16 +310,16 @@ def create_pending_reservation(
     reservation_duration_minutes: int = 5
 ) -> dict:
     """
-    Creates a pending reservation holding the requested seats.
+    Called inside the critical section protected by the Mini ZooKeeper OS Lock.
     
-    Guarantees:
-    - Runs in an atomic transaction.
-    - Prevents double-booking: Checks that every requested seat is currently 'AVAILABLE'.
-    - Calculates total amount from event.ticket_price in DB (never trusts frontend input).
-    - Sets an expiry timestamp on the temporary reservation.
+    EXPLAIN TO JUDGES:
+    "Step 1: Check that every requested seat is currently AVAILABLE.
+     Step 2: If available, change seat status to RESERVED.
+     Step 3: Create a Booking record with a 5-minute hold timer.
+     Step 4: Commit everything in one atomic transaction."
     """
     if not seat_ids:
-        return {"success": False, "message": "At least one seat must be selected."}
+        return {"success": False, "message": "Please select at least one seat."}
 
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
@@ -337,12 +329,12 @@ def create_pending_reservation(
     if not user:
         return {"success": False, "message": "User not found."}
 
-    # Fetch and verify all requested seats
+    # Step 1: Verify all seats exist for this event
     seats = db.query(Seat).filter(Seat.id.in_(seat_ids), Seat.event_id == event_id).all()
     if len(seats) != len(seat_ids):
-        return {"success": False, "message": "One or more selected seats do not exist for this event."}
+        return {"success": False, "message": "One or more selected seats do not exist."}
 
-    # Verify every seat is available
+    # Step 2: Ensure EVERY seat is currently AVAILABLE
     for seat in seats:
         if seat.status != "AVAILABLE":
             return {
@@ -350,17 +342,17 @@ def create_pending_reservation(
                 "message": f"Seat '{seat.seat_number}' is already {seat.status.lower()}."
             }
 
-    # Compute authoritative price
+    # Step 3: Compute price safely on backend (never trust frontend numbers)
     total_amount = round(event.ticket_price * len(seats), 2)
     booking_ref = f"BK_{uuid.uuid4().hex[:8].upper()}"
     expiry_time = datetime.now(timezone.utc) + timedelta(minutes=reservation_duration_minutes)
 
     try:
-        # 1. Update seats to RESERVED
+        # Step 4: Mark seats as RESERVED
         for seat in seats:
             seat.status = "RESERVED"
 
-        # 2. Create Booking record
+        # Step 5: Create Booking
         booking = Booking(
             booking_reference=booking_ref,
             user_id=user_id,
@@ -372,7 +364,7 @@ def create_pending_reservation(
         db.add(booking)
         db.flush()
 
-        # 3. Create BookingSeat mappings
+        # Step 6: Create BookingSeat mapping with expiry timestamp
         booking_seats = [
             BookingSeat(booking_id=booking.id, seat_id=seat.id, reserved_until=expiry_time)
             for seat in seats
@@ -387,7 +379,7 @@ def create_pending_reservation(
             "total_amount": booking.total_amount,
             "seats": [s.seat_number for s in seats],
             "expires_at": expiry_time.isoformat(),
-            "message": "Seats temporarily reserved. Complete checkout before reservation expires."
+            "message": "Seats temporarily reserved for 5 minutes."
         }
     except Exception as err:
         db.rollback()
@@ -402,8 +394,8 @@ def confirm_booking_payment(
 ) -> dict:
     """
     Confirms payment for a booking.
-    - If SUCCESS: Marks booking CONFIRMED and transitions all reserved seats to SOLD permanently.
-    - If FAILED: Releases reserved seats back to AVAILABLE.
+    - If SUCCESS: permanently marks seats as SOLD.
+    - If FAILED or EXPIRED: returns seats back to AVAILABLE.
     """
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
@@ -412,27 +404,25 @@ def confirm_booking_payment(
     if booking.booking_status == "CONFIRMED":
         return {"success": True, "message": "Booking is already confirmed and paid."}
 
-    # Prevent paying for expired reservations
+    # Check if the 5-minute hold timer expired before payment arrived
     now = datetime.now(timezone.utc)
     for bs in booking.booking_seats:
-        if bs.reserved_until and bs.reserved_until.tzinfo is None:
-            # Normalize naive datetime from SQLite
-            res_until = bs.reserved_until.replace(tzinfo=timezone.utc)
-        else:
-            res_until = bs.reserved_until
+        res_until = bs.reserved_until
+        if res_until and res_until.tzinfo is None:
+            res_until = res_until.replace(tzinfo=timezone.utc)
 
-        if res_until and res_until < now and status == "SUCCESS":
-            # Reservation has expired!
+        if res_until and res_until < now and status.upper() == "SUCCESS":
+            # Timer expired! Free the seats
             booking.booking_status = "EXPIRED"
             booking.payment_status = "FAILED"
             for b_seat in booking.booking_seats:
                 if b_seat.seat.status == "RESERVED":
                     b_seat.seat.status = "AVAILABLE"
             db.commit()
-            return {"success": False, "message": "Reservation has expired. Seats have been released."}
+            return {"success": False, "message": "Reservation expired. Seats have been returned to available."}
 
     try:
-        # Record payment entry
+        # Record payment
         payment = Payment(
             booking_id=booking.id,
             payment_reference=payment_reference,
@@ -450,7 +440,7 @@ def confirm_booking_payment(
         else:
             booking.booking_status = "CANCELLED"
             booking.payment_status = "FAILED"
-            # Release seats back to AVAILABLE
+            # Free seats back to AVAILABLE
             for bs in booking.booking_seats:
                 if bs.seat.status == "RESERVED":
                     bs.seat.status = "AVAILABLE"
@@ -462,20 +452,20 @@ def confirm_booking_payment(
             "booking_status": booking.booking_status,
             "payment_status": booking.payment_status,
             "seats": [bs.seat.seat_number for bs in booking.booking_seats],
-            "message": "Payment verified and booking confirmed!" if status.upper() == "SUCCESS" else "Payment failed; seats released."
+            "message": "Payment verified and seats permanently booked!" if status.upper() == "SUCCESS" else "Payment failed; seats freed."
         }
     except Exception as err:
         db.rollback()
-        return {"success": False, "message": f"Payment processing error: {str(err)}"}
+        return {"success": False, "message": f"Payment error: {str(err)}"}
 
 
 def release_expired_reservations(db: Session) -> int:
     """
-    Background cleaner: Finds all PENDING bookings with expired reservations and releases their seats.
-    Returns the count of seats freed.
+    Housekeeping cleaner: Finds bookings where the 5-minute hold expired
+    without payment, and resets their seats from RESERVED back to AVAILABLE.
     """
     now = datetime.now(timezone.utc)
-    expired_seats_count = 0
+    freed_count = 0
 
     expired_booking_seats = (
         db.query(BookingSeat)
@@ -487,13 +477,13 @@ def release_expired_reservations(db: Session) -> int:
     for bs in expired_booking_seats:
         if bs.seat.status == "RESERVED":
             bs.seat.status = "AVAILABLE"
-            expired_seats_count += 1
+            freed_count += 1
         bs.booking.booking_status = "EXPIRED"
 
-    if expired_seats_count > 0:
+    if freed_count > 0:
         db.commit()
 
-    return expired_seats_count
+    return freed_count
 
 
 def update_event(
@@ -507,7 +497,7 @@ def update_event(
     status: str = None,
     poster: str = None
 ):
-    """Updates event metadata."""
+    """Updates event details (title, price, status, poster)."""
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         return None
@@ -534,16 +524,14 @@ def update_event(
 
 
 def seed_sample_events(db: Session):
-    """
-    Seeds 4 realistic sample events into the database if empty.
-    """
+    """Seeds 4 realistic sample events if the events table is empty."""
     if db.query(Event).count() > 0:
-        return  # Already seeded
+        return
 
     sample_data = [
         {
             "title": "Google Developer Conference 2026",
-            "description": "Join developers, cloud architects, and engineers for keynote talks on Android, Gemini, and distributed cloud systems.",
+            "description": "Keynotes on Android, Gemini models, and distributed cloud computing.",
             "venue": "Moscone Center West, San Francisco",
             "event_date": datetime.now(timezone.utc) + timedelta(days=14, hours=10),
             "ticket_price": 299.00,
@@ -553,7 +541,7 @@ def seed_sample_events(db: Session):
         },
         {
             "title": "Technology Innovation Summit",
-            "description": "The premier gathering for technology leaders, startups, and innovators shaping the next decade of software infrastructure.",
+            "description": "Software architecture, scalability, and next-generation infrastructure.",
             "venue": "Metropolitan Convention Center, New York",
             "event_date": datetime.now(timezone.utc) + timedelta(days=21, hours=9),
             "ticket_price": 199.00,
@@ -563,7 +551,7 @@ def seed_sample_events(db: Session):
         },
         {
             "title": "AI & Machine Learning World Congress",
-            "description": "Deep dive into foundation models, LLM deployment, high-throughput model serving, and distributed GPU clusters.",
+            "description": "Foundation models, LLM serving clusters, and high-throughput GPU workloads.",
             "venue": "Boston Hynes Convention Center, Boston",
             "event_date": datetime.now(timezone.utc) + timedelta(days=28, hours=11),
             "ticket_price": 349.00,
@@ -573,7 +561,7 @@ def seed_sample_events(db: Session):
         },
         {
             "title": "Neon Lights Music & Arts Festival",
-            "description": "Three days of live electronic music, experiential stage lighting, and digital art installations.",
+            "description": "Live electronic music and digital art installations.",
             "venue": "Austin Open Park Grounds, Austin, TX",
             "event_date": datetime.now(timezone.utc) + timedelta(days=35, hours=17),
             "ticket_price": 89.00,

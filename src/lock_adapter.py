@@ -1,12 +1,24 @@
 """
 src/lock_adapter.py
-Safe API Adapter Layer for Mini ZooKeeper (Backend A).
+Safe API Adapter Layer for Mini ZooKeeper.
 
-Connects the core locking engine (lock_manager) to Backend B and the web API/frontend.
-Guarantees:
-- Safe data translation (JSON-serializable Python dictionaries).
-- Internal OS file descriptors and file objects are NEVER exposed to the frontend or browser.
-- Simple, beginner-friendly endpoints for acquire, release, status, and active locks list.
+=============================================================================
+HOW TO EXPLAIN THIS FILE TO JUDGES (VIVA CHEAT SHEET):
+"This file is our FastAPI web backend. It ties everything together in 4 parts:
+1. Core Locking Endpoints (/api/lock/acquire and /api/lock/release):
+   - Bridges our Python locking engine (lock_manager.py) to web requests.
+   - Ensures internal file descriptors are never exposed to the frontend.
+2. Seat Reservation Flow (/api/bookings/reserve):
+   - When a customer clicks 'Reserve', we do 3 things:
+     a) Sort seat IDs (prevents deadlocks).
+     b) Call core_acquire() to get an OS file lock on each seat.
+     c) If lock is granted, mark seat as RESERVED for 5 minutes in database,
+        then IMMEDIATELY release the OS lock so other threads can proceed.
+3. Payment Confirmation (/api/bookings/{id}/pay):
+   - Verifies customer payment and permanently transitions seat from RESERVED to SOLD.
+4. QR Ticket Generation (/api/bookings/{id}/ticket-qr):
+   - Generates a real PNG QR code encoding the verified admission ticket."
+=============================================================================
 """
 
 from typing import Optional
@@ -716,23 +728,26 @@ if FASTAPI_AVAILABLE:
     @app.post("/api/bookings/reserve")
     def endpoint_reserve_seats(payload: CreateReservationRequest, db: Session = Depends(get_db)):
         """
-        PHASE 5: Mini ZooKeeper Seat Locking Engine Integration.
+        RESERVE SEATS ENDPOINT (PHASE 5 CORE LOCKING):
 
-        Guarantees:
-        - Centralized Mini ZooKeeper OS-level file locking.
-        - Deadlock prevention via sorted seat IDs.
-        - Lock held ONLY during the short critical section (DB check + state change to RESERVED).
-        - Prevents simultaneous double-booking of any seat.
-        - Released immediately so subsequent requests see the updated RESERVED state.
+        EXPLAIN THIS TO JUDGES IN 3 SIMPLE STEPS:
+        1. We acquire a short OS-level lock (fcntl.flock) on each seat.
+           If two users click the same seat at the exact same microsecond,
+           only ONE gets the lock; the other receives a 409 conflict error.
+        2. Inside the lock, we check the database inventory. If available,
+           we mark the seat RESERVED and give the user a 5-minute hold timer.
+        3. In the finally block, we IMMEDIATELY release the OS lock!
+           (We hold the OS lock for only ~15ms, not 5 minutes).
         """
         import uuid
 
+        # Step 1: Sort seat IDs to prevent deadlocks (e.g. User 1 picks A, B; User 2 picks B, A)
         sorted_seat_ids = sorted(payload.seat_ids)
         acquired_locks = []
         lock_client_id = f"cust_{payload.user_id}_{uuid.uuid4().hex[:6]}"
 
         try:
-            # 1. Acquire Mini ZooKeeper lock for each seat in sorted order
+            # Step 2: Acquire Mini ZooKeeper OS lock for each seat
             for s_id in sorted_seat_ids:
                 resource_name = f"event_{payload.event_id}_seat_{s_id}"
                 lock_res = core_acquire(
@@ -741,13 +756,14 @@ if FASTAPI_AVAILABLE:
                     timeout_seconds=1.5
                 )
                 if not lock_res.get("success"):
+                    # Another user is currently locking this seat!
                     raise HTTPException(
                         status_code=409,
                         detail=f"Lock contention: Seat ID {s_id} is currently being reserved by another customer. Please choose another seat."
                     )
                 acquired_locks.append((resource_name, lock_res.get("lock_handle")))
 
-            # 2. Inside the protected critical section: execute atomic DB reservation
+            # Step 3: Inside the lock: Check DB and mark as RESERVED (5-min hold lease)
             result = create_pending_reservation(
                 db=db,
                 user_id=payload.user_id,
@@ -759,7 +775,7 @@ if FASTAPI_AVAILABLE:
                 raise HTTPException(status_code=400, detail=result.get("message"))
             return result
         finally:
-            # 3. Always release Mini ZooKeeper OS locks immediately after reservation operation
+            # Step 4: ALWAYS release all OS locks immediately so other requests are not blocked
             for res_name, handle in acquired_locks:
                 try:
                     core_release(

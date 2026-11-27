@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In - Mini ZooKeeper Ticket Booking</title>
+  <title>Sign In - Mini ZooKeeper</title>
   <link rel="stylesheet" href="css/style.css">
   <style>
     .auth-container {
       max-width: 440px;
       margin: 4rem auto;
-      background: #ffffff;
+      background: var(--card-bg);
       padding: 2.5rem;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
       border: 1px solid var(--border-color);
       text-align: center;
     }
@@ -23,25 +23,24 @@
       gap: 12px;
       width: 100%;
       padding: 0.75rem 1rem;
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
+      background: var(--card-inner);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
       font-size: 0.95rem;
-      font-weight: 600;
-      color: #1e293b;
+      font-weight: 700;
+      color: var(--text-primary);
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
     .google-btn:hover {
-      background: #f8fafc;
-      border-color: #94a3b8;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      background: #23273e;
+      border-color: var(--purple-primary);
+      box-shadow: 0 0 12px var(--purple-glow);
     }
     .demo-box {
       margin-top: 2rem;
       padding-top: 1.5rem;
-      border-top: 1px solid var(--border-color);
+      border-top: 1px solid var(--border-subtle);
       text-align: left;
     }
   </style>
@@ -51,24 +50,24 @@
 
   <div class="auth-container">
     <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎟️</div>
-    <h2 style="font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem;">Welcome to Mini ZooKeeper</h2>
-    <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 2rem;">
+    <h2 style="font-size: 1.5rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">Mini ZooKeeper</h2>
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 2rem;">
       Distributed Concurrency-Protected Event Ticket Platform
     </p>
 
-    <!-- Google Sign-in Mock/Direct Form -->
+    <!-- Sign-in Form -->
     <form id="loginForm" onsubmit="handleManualLogin(event)">
       <div style="margin-bottom: 1.25rem; text-align: left;">
-        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: #334155;">
+        <label style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem; color: var(--text-muted); letter-spacing: 0.5px;">
           Google Account Email
         </label>
-        <input type="email" id="emailInput" required placeholder="your.name@gmail.com" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem;">
+        <input type="email" id="emailInput" required placeholder="your.name@gmail.com" class="form-control" style="width: 100%;">
       </div>
       <div style="margin-bottom: 1.5rem; text-align: left;">
-        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: #334155;">
+        <label style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem; color: var(--text-muted); letter-spacing: 0.5px;">
           Full Name
         </label>
-        <input type="text" id="nameInput" placeholder="Jane Doe" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem;">
+        <input type="text" id="nameInput" placeholder="Kapil Poddar" class="form-control" style="width: 100%;">
       </div>
 
       <button type="submit" class="google-btn">
@@ -84,15 +83,15 @@
 
     <!-- Viva Demo Quick Login Shortcuts -->
     <div class="demo-box">
-      <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 0.75rem;">
+      <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--purple-primary); margin-bottom: 0.75rem; letter-spacing: 0.5px;">
         ⚡ Fast Evaluator Demo Access
       </div>
       <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-        <button onclick="loginAs('kapilpoddar99999@gmail.com', 'Kapil (Approved Organizer)')" class="btn btn-sm btn-secondary" style="text-align: left; padding: 0.5rem 0.75rem; font-size: 0.85rem;">
-          🔑 <strong>Organizer Role:</strong> kapilpoddar99999@gmail.com
+        <button onclick="loginAs('kapilpoddar99999@gmail.com', 'Kapil (Approved Organizer)')" class="btn btn-sm btn-secondary" style="text-align: left; padding: 0.6rem 0.85rem; font-size: 0.85rem;">
+          🔑 <strong>Organizer:</strong> kapilpoddar99999@gmail.com
         </button>
-        <button onclick="loginAs('customer@example.com', 'Alex Customer')" class="btn btn-sm btn-secondary" style="text-align: left; padding: 0.5rem 0.75rem; font-size: 0.85rem;">
-          👤 <strong>Customer Role:</strong> customer@example.com
+        <button onclick="loginAs('customer@example.com', 'Alex Customer')" class="btn btn-sm btn-secondary" style="text-align: left; padding: 0.6rem 0.85rem; font-size: 0.85rem;">
+          👤 <strong>Customer:</strong> customer@example.com
         </button>
       </div>
     </div>
