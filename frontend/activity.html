@@ -4,108 +4,125 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Activity Logs - Mini ZooKeeper</title>
-  <!-- Bootstrap 5 CSS via CDN for grid and basic layout -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <!-- Custom CSS -->
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/booking-common.js"></script>
 </head>
 <body>
+  <div id="navbar-placeholder"></div>
 
-  <!-- Top Navigation Bar (Shared with Frontend A) -->
-  <nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container">
-      <a class="navbar-brand d-flex align-items-center" href="index.html">
-        <span class="me-2">🔒</span> Mini ZooKeeper
+  <!-- Access Denied notice for Customers -->
+  <div id="accessDeniedNotice" style="display: none; max-width: 580px; margin: 6rem auto; text-align: center; padding: 3rem 2rem; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
+    <div style="font-size: 3.5rem; margin-bottom: 1rem;">🔒</div>
+    <h2 style="font-size: 1.75rem; font-weight: 900; color: var(--text-primary); margin-bottom: 0.6rem;">Access Denied</h2>
+    <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 2rem; line-height: 1.5;">
+      The <strong>Activity Audit Logs</strong> are restricted to approved host & organizer accounts only.<br>
+      You are currently signed in as a <strong>Customer</strong> (<span id="deniedUserEmail" style="color: var(--text-primary); font-weight: 700;"></span>).
+    </p>
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+      <a href="events.html" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
+        ← Browse Events Catalog
       </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
-        <span class="navbar-toggler-icon"></span>
+      <button onclick="switchToOrganizer()" class="btn btn-secondary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
+        Switch to Host Role
       </button>
-      <div class="collapse navbar-collapse" id="navContent">
-        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-          <li class="nav-item">
-            <a class="nav-link text-info fw-bold" href="events.html">🎟️ Events & Tickets</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="organizer.html">Telemetry & Overview</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="activity.html">Activity Logs</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="analytics.html">Analytics</a>
-          </li>
-        </ul>
-      </div>
     </div>
-  </nav>
+  </div>
 
-  <!-- Main Content Container -->
-  <main class="container my-4">
-
-    <!-- Page Header & Action Bar -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center page-header pb-2 border-bottom">
+  <!-- Main Activity Container (Organizer Only) -->
+  <div id="activityMainContainer" class="events-page-fullscreen" style="display: none;">
+    
+    <!-- Page Header & Action Controls -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.75rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1.5rem;">
       <div>
-        <h2 class="page-title">Live Activity Logs</h2>
-        <p class="page-subtitle mb-0">Audit trail of all distributed lock requests, acquisitions, and releases</p>
+        <h1 style="font-size: 2rem; font-weight: 900; color: var(--text-primary); margin-bottom: 0.3rem;">
+          📋 Distributed Lock Activity Logs
+        </h1>
+        <p style="font-size: 0.95rem; color: var(--text-muted);">
+          Real-time audit trail of all distributed mutex requests, acquisitions, holds, and releases
+        </p>
       </div>
-      <div class="mt-2 mt-md-0 d-flex align-items-center gap-2">
-        <span class="badge bg-secondary" id="log-count-badge">0 records</span>
-        <button class="btn btn-primary btn-sm d-flex align-items-center gap-1" id="btn-refresh">
-          <span>🔄</span> Refresh
-        </button>
+
+      <!-- Action Controls & Host Subnav -->
+      <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+        <div class="admin-subnav">
+          <a href="organizer.html" class="admin-subnav-btn">
+            🎪 Event Catalogs & Revenue
+          </a>
+          <a href="organizer.html?tab=telemetry" class="admin-subnav-btn">
+            ⚡ Lock Telemetry
+          </a>
+          <a href="analytics.html" class="admin-subnav-btn">
+            📊 System Analytics
+          </a>
+          <a href="activity.html" class="admin-subnav-btn active">
+            📋 Audit Activity Logs
+          </a>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.65rem; margin-left: 0.5rem;">
+          <span class="badge badge-purple" id="log-count-badge" style="font-size: 0.82rem; padding: 0.45rem 0.85rem;">0 records</span>
+          <button class="btn btn-primary" id="btn-refresh" style="padding: 0.5rem 1.15rem; font-size: 0.88rem; font-weight: 800;">
+            🔄 Refresh
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Status Filter Legend -->
-    <div class="d-flex flex-wrap gap-2 my-3 align-items-center">
-      <small class="text-muted fw-bold me-1">STATUS LEGEND:</small>
+    <!-- Status Legend -->
+    <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; margin-bottom: 1.5rem; padding: 0.75rem 1.25rem; background: var(--card-inner); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+      <span style="font-size: 0.78rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-right: 0.5rem;">
+        Status Legend:
+      </span>
       <span class="status-badge badge-requested">Requested</span>
       <span class="status-badge badge-acquired">Acquired</span>
       <span class="status-badge badge-released">Released</span>
       <span class="status-badge badge-timed_out">Timed Out</span>
       <span class="status-badge badge-failed">Failed</span>
+      <div style="margin-left: auto;">
+        <small style="color: var(--text-muted); font-size: 0.82rem;" id="last-updated-text">Not updated yet</small>
+      </div>
     </div>
 
     <!-- Activity Log Card -->
-    <div class="custom-card">
-      <div class="card-header-clean">
-        <span>Recent Lock Operations</span>
-        <small class="text-muted" id="last-updated-text">Not updated yet</small>
+    <div class="card" style="padding: 0; overflow: hidden; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+      <div style="padding: 1.25rem 1.75rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--card-inner);">
+        <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary); margin: 0;">
+          Recent Lock Operations & Mutual Exclusion Events
+        </h2>
       </div>
 
       <!-- Loading State -->
-      <div class="state-box" id="loading-state" style="display: none;">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mb-0">Loading activity records from server...</p>
+      <div class="state-box" id="loading-state" style="display: none; padding: 3rem 1.5rem;">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem;">⏳</div>
+        <p style="margin: 0; font-size: 1rem; color: var(--text-secondary);">Loading activity records from server...</p>
       </div>
 
       <!-- Error State -->
-      <div class="alert alert-danger m-3" id="error-state" style="display: none;">
+      <div class="alert alert-danger" id="error-state" style="display: none; margin: 1.5rem; padding: 1.25rem; border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171;">
         <strong>Error:</strong> <span id="error-message">Unable to load logs.</span>
-        <button class="btn btn-sm btn-outline-danger ms-3" id="btn-retry">Retry</button>
+        <button class="btn btn-sm btn-secondary" style="margin-left: 1rem;" id="btn-retry">Retry</button>
       </div>
 
       <!-- Empty State -->
-      <div class="state-box" id="empty-state" style="display: none;">
-        <div class="fs-1 mb-2">📋</div>
-        <h5>No Activity Records Found</h5>
-        <p class="text-muted mb-0">Lock requests will appear here once clients start requesting locks.</p>
+      <div class="state-box" id="empty-state" style="display: none; padding: 4rem 1.5rem;">
+        <div style="font-size: 3rem; margin-bottom: 0.75rem;">📋</div>
+        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.4rem;">No Activity Records Found</h3>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">Lock requests will appear here once clients or concurrent threads start requesting locks.</p>
       </div>
 
       <!-- Data Table Container -->
-      <div class="table-responsive" id="table-container">
-        <table class="table table-hover mb-0 align-middle">
+      <div id="table-container" style="overflow-x: auto;">
+        <table class="table" style="font-size: 0.92rem; margin: 0;">
           <thead>
             <tr>
-              <th>Request ID</th>
-              <th>Client ID</th>
-              <th>Resource Name</th>
-              <th>Requested At</th>
-              <th>Acquired At</th>
-              <th>Released At</th>
-              <th>Status</th>
-              <th>Waiting Time</th>
-              <th>Holding Time</th>
+              <th style="padding: 1rem 1.25rem;">Request ID</th>
+              <th style="padding: 1rem 1.25rem;">Client ID</th>
+              <th style="padding: 1rem 1.25rem;">Resource Name</th>
+              <th style="padding: 1rem 1.25rem;">Requested At</th>
+              <th style="padding: 1rem 1.25rem;">Acquired At</th>
+              <th style="padding: 1rem 1.25rem;">Released At</th>
+              <th style="padding: 1rem 1.25rem;">Status</th>
+              <th style="padding: 1rem 1.25rem;">Waiting Time</th>
+              <th style="padding: 1rem 1.25rem;">Holding Time</th>
             </tr>
           </thead>
           <tbody id="activity-table-body">
@@ -115,18 +132,21 @@
       </div>
     </div>
 
-  </main>
+  </div>
 
-  <!-- Footer -->
-  <footer>
-    <div class="container text-center">
-      <p class="mb-0">Mini ZooKeeper Distributed Lock Service &bull; College Project</p>
-    </div>
-  </footer>
-
-  <!-- Bootstrap 5 JS Bundle via CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Activity Page JavaScript -->
   <script src="js/activity.js"></script>
+  <script>
+    renderNavbar("organizer");
+
+    // Enforce role check
+    const currentUser = getUser();
+    if (!currentUser || currentUser.role !== "ORGANIZER") {
+      document.getElementById("deniedUserEmail").innerText = currentUser ? currentUser.email : "Not signed in";
+      document.getElementById("accessDeniedNotice").style.display = "block";
+      document.getElementById("activityMainContainer").style.display = "none";
+    } else {
+      document.getElementById("activityMainContainer").style.display = "block";
+    }
+  </script>
 </body>
 </html>

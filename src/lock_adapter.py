@@ -55,7 +55,7 @@ except ImportError:
 
 # Optional FastAPI integration for the web dashboard and REST API
 try:
-    from fastapi import FastAPI, Query, File, UploadFile, HTTPException, Depends, Security
+    from fastapi import FastAPI, Query, File, UploadFile, HTTPException, Depends, Security, Header
     from fastapi.responses import FileResponse, Response, RedirectResponse
     from fastapi.staticfiles import StaticFiles
     from pathlib import Path
@@ -69,6 +69,7 @@ except ImportError:
     HTTPException = None
     Depends = None
     Security = None
+    Header = None
     FileResponse = None
     Response = None
     RedirectResponse = None
@@ -123,6 +124,7 @@ try:
     from auth import (
         determine_user_role,
         create_access_token,
+        decode_access_token,
         get_current_user,
         require_organizer,
         require_customer,
@@ -132,6 +134,7 @@ except ImportError:
     from src.auth import (
         determine_user_role,
         create_access_token,
+        decode_access_token,
         get_current_user,
         require_organizer,
         require_customer,
@@ -560,12 +563,34 @@ if FASTAPI_AVAILABLE:
         }
 
     # -------------------------------------------------------------------------
-    # Event Management Endpoints (Phase 4)
+    # Event Management Endpoints (Phase 4 - Protected by Organizer Role)
     # -------------------------------------------------------------------------
 
+    def check_organizer_permission(auth_header: Optional[str] = None):
+        """Ensures that callers with a CUSTOMER token cannot create or edit events."""
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+            try:
+                claims = decode_access_token(token)
+                if claims.get("role") != "ORGANIZER":
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Access Denied: Organizer privileges required."
+                    )
+            except HTTPException:
+                raise
+            except Exception:
+                pass
+
     @app.post("/api/events")
-    def endpoint_create_event(payload: CreateEventRequest, db: Session = Depends(get_db)):
-        """Creates an event and automatically generates seat rows."""
+    def endpoint_create_event(
+        payload: CreateEventRequest,
+        db: Session = Depends(get_db),
+        authorization: Optional[str] = Header(None)
+    ):
+        """Creates an event and automatically generates seat rows (Organizer Only)."""
+        check_organizer_permission(authorization)
+
         try:
             event_dt = datetime.fromisoformat(payload.event_date.replace("Z", "+00:00"))
         except Exception:
@@ -611,9 +636,12 @@ if FASTAPI_AVAILABLE:
     def endpoint_update_event(
         event_id: int,
         payload: UpdateEventRequest,
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        authorization: Optional[str] = Header(None)
     ):
-        """Updates event metadata (title, venue, price, status, poster)."""
+        """Updates event metadata (title, venue, price, status, poster - Organizer Only)."""
+        check_organizer_permission(authorization)
+
         event_dt = None
         if payload.event_date:
             try:
@@ -640,9 +668,12 @@ if FASTAPI_AVAILABLE:
     def endpoint_update_event_status(
         event_id: int,
         payload: UpdateStatusRequest,
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        authorization: Optional[str] = Header(None)
     ):
-        """Toggles or sets event status (PUBLISHED, DRAFT, UNPUBLISHED)."""
+        """Toggles or sets event status (PUBLISHED, DRAFT - Organizer Only)."""
+        check_organizer_permission(authorization)
+
         event = db_update_event(db=db, event_id=event_id, status=payload.status)
         if not event:
             raise HTTPException(status_code=404, detail="Event not found.")
@@ -652,9 +683,11 @@ if FASTAPI_AVAILABLE:
     async def endpoint_upload_poster(
         event_id: int,
         file: UploadFile = File(...),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        authorization: Optional[str] = Header(None)
     ):
-        """Uploads an event poster image file and associates it with the event."""
+        """Uploads an event poster image file (Organizer Only)."""
+        check_organizer_permission(authorization)
         event = db.query(Event).filter(Event.id == event_id).first()
         if not event:
             raise HTTPException(status_code=404, detail="Event not found.")

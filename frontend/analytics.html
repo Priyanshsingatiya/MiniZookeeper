@@ -3,274 +3,256 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Analytics Dashboard - Mini ZooKeeper</title>
-  <!-- Bootstrap 5 CSS via CDN for grid and layout -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <!-- Custom CSS -->
+  <title>Analytics & Performance Dashboard - Mini ZooKeeper</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/booking-common.js"></script>
 </head>
 <body>
+  <div id="navbar-placeholder"></div>
 
-  <!-- Top Navigation Bar (Shared across all pages) -->
-  <nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container">
-      <a class="navbar-brand d-flex align-items-center" href="index.html">
-        <span class="me-2">🔒</span> Mini ZooKeeper
+  <!-- Access Denied notice for Customers -->
+  <div id="accessDeniedNotice" style="display: none; max-width: 580px; margin: 6rem auto; text-align: center; padding: 3rem 2rem; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
+    <div style="font-size: 3.5rem; margin-bottom: 1rem;">🔒</div>
+    <h2 style="font-size: 1.75rem; font-weight: 900; color: var(--text-primary); margin-bottom: 0.6rem;">Access Denied</h2>
+    <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 2rem; line-height: 1.5;">
+      The <strong>Analytics & Benchmark Dashboard</strong> is restricted to approved host & organizer accounts only.<br>
+      You are currently signed in as a <strong>Customer</strong> (<span id="deniedUserEmail" style="color: var(--text-primary); font-weight: 700;"></span>).
+    </p>
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+      <a href="events.html" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
+        ← Browse Events Catalog
       </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
-        <span class="navbar-toggler-icon"></span>
+      <button onclick="switchToOrganizer()" class="btn btn-secondary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
+        Switch to Host Role
       </button>
-      <div class="collapse navbar-collapse" id="navContent">
-        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-          <li class="nav-item">
-            <a class="nav-link text-info fw-bold" href="events.html">🎟️ Events & Tickets</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="organizer.html">Telemetry & Overview</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="activity.html">Activity Logs</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="analytics.html">Analytics</a>
-          </li>
-        </ul>
-      </div>
     </div>
-  </nav>
+  </div>
 
-  <!-- Main Content Container -->
-  <main class="container my-4">
-
-    <!-- Page Header & Action Bar -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center page-header pb-2 border-bottom">
+  <!-- Main Analytics Container (Organizer Only) -->
+  <div id="analyticsMainContainer" class="events-page-fullscreen" style="display: none;">
+    
+    <!-- Page Header & Action Controls -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1.5rem;">
       <div>
-        <h2 class="page-title">Analytics & Performance Dashboard</h2>
-        <p class="page-subtitle mb-0">System health metrics, contention indicators, and benchmark charts</p>
+        <h1 style="font-size: 2rem; font-weight: 900; color: var(--text-primary); margin-bottom: 0.3rem;">
+          📊 Performance & Benchmark Analytics
+        </h1>
+        <p style="font-size: 0.95rem; color: var(--text-muted);">
+          System health metrics, contention indicators, and backend concurrency benchmark visualizations
+        </p>
       </div>
-      <div class="mt-2 mt-md-0 d-flex align-items-center gap-2">
-        <small class="text-muted" id="last-updated-text">Not updated yet</small>
-        <button class="btn btn-primary btn-sm d-flex align-items-center gap-1" id="btn-refresh">
-          <span>🔄</span> Refresh
-        </button>
+
+      <!-- Action Controls & Host Subnav -->
+      <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+        <div class="admin-subnav">
+          <a href="organizer.html" class="admin-subnav-btn">
+            🎪 Event Catalogs & Revenue
+          </a>
+          <a href="organizer.html?tab=telemetry" class="admin-subnav-btn">
+            ⚡ Lock Telemetry
+          </a>
+          <a href="analytics.html" class="admin-subnav-btn active">
+            📊 System Analytics
+          </a>
+          <a href="activity.html" class="admin-subnav-btn">
+            📋 Audit Activity Logs
+          </a>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.65rem; margin-left: 0.5rem;">
+          <small style="color: var(--text-muted); font-size: 0.82rem;" id="last-updated-text">Not updated yet</small>
+          <button class="btn btn-primary" id="btn-refresh" style="padding: 0.5rem 1.15rem; font-size: 0.88rem; font-weight: 800;">
+            🔄 Refresh
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Loading State -->
-    <div class="state-box" id="loading-state" style="display: none;">
-      <div class="spinner-border text-primary" role="status"></div>
-      <p class="mb-0">Calculating analytics from backend logs...</p>
+    <div class="state-box" id="loading-state" style="display: none; padding: 2.5rem; margin-bottom: 1.5rem;">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">⏳</div>
+      <p style="margin: 0; font-size: 1rem; color: var(--text-secondary);">Calculating analytics from backend logs...</p>
     </div>
 
     <!-- Error State -->
-    <div class="alert alert-danger my-3" id="error-state" style="display: none;">
+    <div class="alert alert-danger" id="error-state" style="display: none; margin-bottom: 1.5rem; padding: 1.25rem; border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171;">
       <strong>Error:</strong> <span id="error-message">Unable to load analytics.</span>
-      <button class="btn btn-sm btn-outline-danger ms-3" id="btn-retry">Retry</button>
+      <button class="btn btn-sm btn-secondary" style="margin-left: 1rem;" id="btn-retry">Retry</button>
     </div>
 
-    <!-- Content Section (Cards & Charts) -->
+    <!-- Content Section -->
     <div id="analytics-content">
-
-      <!-- ============================================================== -->
-      <!-- SECTION 1: Summary Metric Cards (7 Required Metrics)           -->
-      <!-- ============================================================== -->
-      <h5 class="fw-bold text-secondary mb-3 mt-2">Core System Metrics</h5>
       
-      <div class="row g-3 mb-4">
-        <!-- 1. Total Lock Requests -->
-        <div class="col-sm-6 col-lg-3">
-          <div class="metric-card border-top border-4 border-primary">
+      <!-- Section 1: 7 Core Metric Cards -->
+      <div style="margin-bottom: 0.85rem;">
+        <h2 style="font-size: 1.15rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); margin-bottom: 1rem;">
+          Core Distributed Lock Performance Metrics
+        </h2>
+      </div>
+
+      <div class="metric-grid-7">
+        <!-- 1. Total Requests -->
+        <div class="metric-card" style="border-top: 4px solid var(--purple-primary);">
+          <div>
             <div class="metric-label">Total Requests</div>
-            <div class="metric-value text-primary" id="val-total-requests">-</div>
-            <small class="text-muted">Unique lock attempts</small>
+            <div class="metric-value" id="val-total-requests" style="color: var(--purple-primary);">-</div>
           </div>
+          <div class="metric-desc">Unique lock attempts handled</div>
         </div>
 
-        <!-- 2. Successful Acquisitions -->
-        <div class="col-sm-6 col-lg-3">
-          <div class="metric-card border-top border-4 border-info">
+        <!-- 2. Acquisitions -->
+        <div class="metric-card" style="border-top: 4px solid #38bdf8;">
+          <div>
             <div class="metric-label">Acquisitions</div>
-            <div class="metric-value text-info" id="val-acquisitions">-</div>
-            <small class="text-muted">Granted successfully</small>
+            <div class="metric-value" id="val-acquisitions" style="color: #38bdf8;">-</div>
           </div>
+          <div class="metric-desc">Granted mutex successfully</div>
         </div>
 
         <!-- 3. Released Locks -->
-        <div class="col-sm-6 col-lg-3">
-          <div class="metric-card border-top border-4 border-success">
+        <div class="metric-card" style="border-top: 4px solid #4ade80;">
+          <div>
             <div class="metric-label">Released Locks</div>
-            <div class="metric-value text-success" id="val-released">-</div>
-            <small class="text-muted">Safely released</small>
+            <div class="metric-value" id="val-released" style="color: #4ade80;">-</div>
           </div>
+          <div class="metric-desc">Safely returned to free pool</div>
         </div>
 
-        <!-- 4. Timeout Count -->
-        <div class="col-sm-6 col-lg-3">
-          <div class="metric-card border-top border-4 border-danger">
+        <!-- 4. Timed-Out Requests -->
+        <div class="metric-card" style="border-top: 4px solid #f87171;">
+          <div>
             <div class="metric-label">Timed-Out Requests</div>
-            <div class="metric-value text-danger" id="val-timeouts">-</div>
-            <small class="text-muted">Queue time exceeded</small>
+            <div class="metric-value" id="val-timeouts" style="color: #f87171;">-</div>
           </div>
+          <div class="metric-desc">Queue deadline exceeded</div>
         </div>
 
         <!-- 5. Timeout Rate -->
-        <div class="col-sm-6 col-lg-4">
-          <div class="metric-card border-top border-4 border-warning">
+        <div class="metric-card" style="border-top: 4px solid #fbbf24;">
+          <div>
             <div class="metric-label">Timeout Rate</div>
-            <div class="metric-value text-warning" id="val-timeout-rate">-</div>
-            <small class="text-muted">% of requests timed out</small>
+            <div class="metric-value" id="val-timeout-rate" style="color: #fbbf24;">-</div>
           </div>
+          <div class="metric-desc">% of requests timed out</div>
         </div>
 
-        <!-- 6. Average Waiting Time -->
-        <div class="col-sm-6 col-lg-4">
-          <div class="metric-card border-top border-4 border-secondary">
+        <!-- 6. Average Wait Time -->
+        <div class="metric-card" style="border-top: 4px solid #c084fc;">
+          <div>
             <div class="metric-label">Average Wait Time</div>
-            <div class="metric-value text-dark" id="val-avg-wait">-</div>
-            <small class="text-muted">Mean time spent in queue</small>
+            <div class="metric-value" id="val-avg-wait" style="color: var(--text-primary);">-</div>
           </div>
+          <div class="metric-desc">Mean delay in queue</div>
         </div>
 
-        <!-- 7. Average Holding Time -->
-        <div class="col-sm-12 col-lg-4">
-          <div class="metric-card border-top border-4 border-dark">
+        <!-- 7. Average Hold Time -->
+        <div class="metric-card" style="border-top: 4px solid #64748b;">
+          <div>
             <div class="metric-label">Average Hold Time</div>
-            <div class="metric-value text-dark" id="val-avg-hold">-</div>
-            <small class="text-muted">Mean duration lock held</small>
+            <div class="metric-value" id="val-avg-hold" style="color: var(--text-primary);">-</div>
+          </div>
+          <div class="metric-desc">Mean duration mutex active</div>
+        </div>
+      </div>
+
+      <!-- Section 2: Viva Reference Guide -->
+      <div class="card" style="padding: 1.5rem; margin-bottom: 2.5rem; border-radius: var(--radius-lg);">
+        <div style="font-size: 1.05rem; font-weight: 800; color: var(--text-primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+          <span>💡</span> What Do These Metrics Mean? (Viva & Defense Reference Guide)
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;">
+          <div style="background: var(--card-inner); padding: 1.15rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            <div style="font-weight: 800; font-size: 0.9rem; color: var(--purple-primary); margin-bottom: 0.35rem;">Total Lock Requests</div>
+            <div style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.45;">Total number of distinct client attempts to acquire mutual exclusion across all concurrent worker threads.</div>
+          </div>
+          <div style="background: var(--card-inner); padding: 1.15rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            <div style="font-weight: 800; font-size: 0.9rem; color: #38bdf8; margin-bottom: 0.35rem;">Successful Acquisitions</div>
+            <div style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.45;">Requests that successfully acquired the OS kernel lock without encountering contention deadlocks.</div>
+          </div>
+          <div style="background: var(--card-inner); padding: 1.15rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            <div style="font-weight: 800; font-size: 0.9rem; color: #4ade80; margin-bottom: 0.35rem;">Released Locks</div>
+            <div style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.45;">Locks that safely finished their critical section and unlocked the kernel mutex for the next waiting client.</div>
+          </div>
+          <div style="background: var(--card-inner); padding: 1.15rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            <div style="font-weight: 800; font-size: 0.9rem; color: #f87171; margin-bottom: 0.35rem;">Timeout Count</div>
+            <div style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.45;">Requests where waiting duration exceeded client's timeout deadline before the seat lock became free.</div>
+          </div>
+          <div style="background: var(--card-inner); padding: 1.15rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            <div style="font-weight: 800; font-size: 0.9rem; color: #fbbf24; margin-bottom: 0.35rem;">Timeout Rate (%)</div>
+            <div style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.45;">Percentage of total attempts that timed out: <code>(Timeouts / Requests) &times; 100</code>. Key indicator of contention stress.</div>
+          </div>
+          <div style="background: var(--card-inner); padding: 1.15rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.35rem;">Wait vs Hold Time</div>
+            <div style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.45;"><strong>Wait Time:</strong> Delay spent in queue waiting. <strong>Hold Time:</strong> Active duration spent executing in critical section.</div>
           </div>
         </div>
       </div>
 
-      <!-- ============================================================== -->
-      <!-- SECTION 2: Metric Explanations Guide (For College Viva)        -->
-      <!-- ============================================================== -->
-      <div class="custom-card mb-4">
-        <div class="card-header-clean bg-light">
-          <span class="fw-bold">💡 What Do These Metrics Mean? (Viva Reference Guide)</span>
-        </div>
-        <div class="p-3">
-          <div class="row g-3">
-            <div class="col-md-6 col-lg-4">
-              <div class="p-2 border rounded bg-white h-100">
-                <h6 class="fw-bold text-primary mb-1">Total Lock Requests</h6>
-                <p class="small text-muted mb-0">Total number of distinct client attempts to acquire a lock across all workers.</p>
-              </div>
-            </div>
-            <div class="col-md-6 col-lg-4">
-              <div class="p-2 border rounded bg-white h-100">
-                <h6 class="fw-bold text-info mb-1">Successful Acquisitions</h6>
-                <p class="small text-muted mb-0">Requests that successfully obtained exclusive mutual exclusion without clashing.</p>
-              </div>
-            </div>
-            <div class="col-md-6 col-lg-4">
-              <div class="p-2 border rounded bg-white h-100">
-                <h6 class="fw-bold text-success mb-1">Released Locks</h6>
-                <p class="small text-muted mb-0">Locks that completed their critical section and were freed for the next waiting client.</p>
-              </div>
-            </div>
-            <div class="col-md-6 col-lg-4">
-              <div class="p-2 border rounded bg-white h-100">
-                <h6 class="fw-bold text-danger mb-1">Timeout Count</h6>
-                <p class="small text-muted mb-0">Requests where waiting time exceeded the client's timeout limit before lock became free.</p>
-              </div>
-            </div>
-            <div class="col-md-6 col-lg-4">
-              <div class="p-2 border rounded bg-white h-100">
-                <h6 class="fw-bold text-warning mb-1">Timeout Rate (%)</h6>
-                <p class="small text-muted mb-0">Percentage of total requests that timed out: <code>(Timeouts / Requests) &times; 100</code>.</p>
-              </div>
-            </div>
-            <div class="col-md-6 col-lg-4">
-              <div class="p-2 border rounded bg-white h-100">
-                <h6 class="fw-bold text-dark mb-1">Wait vs Hold Time</h6>
-                <p class="small text-muted mb-0"><strong>Wait Time:</strong> Delay before acquiring. <strong>Hold Time:</strong> Duration the lock was kept active.</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <!-- Section 3: Performance Charts -->
+      <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <h2 style="font-size: 1.15rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); margin: 0;">
+          Performance Benchmark Visualizations
+        </h2>
+        <span class="badge badge-purple" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">Generated with Matplotlib</span>
       </div>
 
-      <!-- ============================================================== -->
-      <!-- SECTION 3: Performance Charts (Backend-Generated Matplotlib)   -->
-      <!-- ============================================================== -->
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-bold text-secondary mb-0">Performance Benchmark Visualizations</h5>
-        <span class="badge bg-light text-dark border">Generated with Matplotlib</span>
-      </div>
-
-      <div class="row g-4" id="charts-container">
-        <!-- Chart 1: Processes vs Average Waiting Time -->
-        <div class="col-lg-4">
-          <div class="custom-card h-100">
-            <div class="card-header-clean">
-              <span class="fw-bold small">1. Processes vs Wait Time</span>
-            </div>
-            <div class="p-2 text-center">
-              <img src="/analytics/charts/chart_wait_time.png" 
-                   id="img-chart-wait" 
-                   alt="Processes vs Average Waiting Time" 
-                   class="img-fluid rounded border"
-                   onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23f1f5f9\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2394a3b8\'>Chart loading or not generated</text></svg>';">
-            </div>
-            <div class="p-2 text-muted small border-top bg-light">
-              Demonstrates queue delay scaling as concurrency increases from 1 to 8 processes.
-            </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+        <!-- Chart 1: Wait Time -->
+        <div class="card" style="padding: 0; overflow: hidden; border-radius: var(--radius-lg);">
+          <div style="padding: 1rem 1.25rem; font-weight: 800; font-size: 0.95rem; background: var(--card-inner); border-bottom: 1px solid var(--border-color); color: var(--text-primary);">
+            1. Concurrency vs Average Waiting Time
+          </div>
+          <div style="padding: 1rem; text-align: center; background: #0c0d14;">
+            <img src="/analytics/charts/chart_wait_time.png" id="img-chart-wait" alt="Processes vs Average Waiting Time" style="max-width: 100%; height: auto; border-radius: 6px;" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23161826\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2364748b\'>Chart loading or not generated</text></svg>';">
+          </div>
+          <div style="padding: 0.85rem 1.25rem; font-size: 0.83rem; color: var(--text-muted); border-top: 1px solid var(--border-subtle); background: var(--card-bg);">
+            Demonstrates queue delay scaling as concurrency increases from 1 to 8 processes.
           </div>
         </div>
 
-        <!-- Chart 2: Processes vs Timeout Count -->
-        <div class="col-lg-4">
-          <div class="custom-card h-100">
-            <div class="card-header-clean">
-              <span class="fw-bold small">2. Processes vs Timeouts</span>
-            </div>
-            <div class="p-2 text-center">
-              <img src="/analytics/charts/chart_timeouts.png" 
-                   id="img-chart-timeouts" 
-                   alt="Processes vs Timeout Count" 
-                   class="img-fluid rounded border"
-                   onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23f1f5f9\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2394a3b8\'>Chart loading or not generated</text></svg>';">
-            </div>
-            <div class="p-2 text-muted small border-top bg-light">
-              Shows lock contention saturation points where requests exceed timeout thresholds.
-            </div>
+        <!-- Chart 2: Timeouts -->
+        <div class="card" style="padding: 0; overflow: hidden; border-radius: var(--radius-lg);">
+          <div style="padding: 1rem 1.25rem; font-weight: 800; font-size: 0.95rem; background: var(--card-inner); border-bottom: 1px solid var(--border-color); color: var(--text-primary);">
+            2. Concurrency vs Timeout Count
+          </div>
+          <div style="padding: 1rem; text-align: center; background: #0c0d14;">
+            <img src="/analytics/charts/chart_timeouts.png" id="img-chart-timeouts" alt="Processes vs Timeout Count" style="max-width: 100%; height: auto; border-radius: 6px;" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23161826\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2364748b\'>Chart loading or not generated</text></svg>';">
+          </div>
+          <div style="padding: 0.85rem 1.25rem; font-size: 0.83rem; color: var(--text-muted); border-top: 1px solid var(--border-subtle); background: var(--card-bg);">
+            Shows lock contention saturation points where requests exceed timeout thresholds.
           </div>
         </div>
 
-        <!-- Chart 3: Processes vs Average Holding Time -->
-        <div class="col-lg-4">
-          <div class="custom-card h-100">
-            <div class="card-header-clean">
-              <span class="fw-bold small">3. Processes vs Holding Time</span>
-            </div>
-            <div class="p-2 text-center">
-              <img src="/analytics/charts/chart_hold_time.png" 
-                   id="img-chart-hold" 
-                   alt="Processes vs Average Holding Time" 
-                   class="img-fluid rounded border"
-                   onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23f1f5f9\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2394a3b8\'>Chart loading or not generated</text></svg>';">
-            </div>
-            <div class="p-2 text-muted small border-top bg-light">
-              Proves execution stability: workers release locks cleanly without holding them hostage.
-            </div>
+        <!-- Chart 3: Holding Time -->
+        <div class="card" style="padding: 0; overflow: hidden; border-radius: var(--radius-lg);">
+          <div style="padding: 1rem 1.25rem; font-weight: 800; font-size: 0.95rem; background: var(--card-inner); border-bottom: 1px solid var(--border-color); color: var(--text-primary);">
+            3. Concurrency vs Average Holding Time
+          </div>
+          <div style="padding: 1rem; text-align: center; background: #0c0d14;">
+            <img src="/analytics/charts/chart_hold_time.png" id="img-chart-hold" alt="Processes vs Average Holding Time" style="max-width: 100%; height: auto; border-radius: 6px;" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23161826\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2364748b\'>Chart loading or not generated</text></svg>';">
+          </div>
+          <div style="padding: 0.85rem 1.25rem; font-size: 0.83rem; color: var(--text-muted); border-top: 1px solid var(--border-subtle); background: var(--card-bg);">
+            Proves execution stability: workers release locks cleanly without holding them hostage.
           </div>
         </div>
       </div>
 
     </div>
 
-  </main>
+  </div>
 
-  <!-- Footer -->
-  <footer>
-    <div class="container text-center">
-      <p class="mb-0">Mini ZooKeeper Distributed Lock Service &bull; College Project</p>
-    </div>
-  </footer>
-
-  <!-- Bootstrap 5 JS Bundle via CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Analytics Page JavaScript -->
   <script src="js/analytics.js"></script>
+  <script>
+    renderNavbar("organizer");
+
+    // Enforce role check
+    const currentUser = getUser();
+    if (!currentUser || currentUser.role !== "ORGANIZER") {
+      document.getElementById("deniedUserEmail").innerText = currentUser ? currentUser.email : "Not signed in";
+      document.getElementById("accessDeniedNotice").style.display = "block";
+      document.getElementById("analyticsMainContainer").style.display = "none";
+    } else {
+      document.getElementById("analyticsMainContainer").style.display = "block";
+    }
+  </script>
 </body>
 </html>

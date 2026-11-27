@@ -3,65 +3,104 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lock Engine & Telemetry Overview - Mini ZooKeeper</title>
+  <title>Host & Admin Dashboard - Mini ZooKeeper</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/booking-common.js"></script>
   <style>
-    /* Tab switcher between Live Monitor and Event Management */
+    /* Tab Switcher Buttons */
     .view-tab-btn {
       background: var(--card-inner);
       border: 1px solid var(--border-color);
       color: var(--text-muted);
-      font-weight: 600;
-      font-size: 0.85rem;
-      padding: 0.4rem 0.9rem;
-      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 0.55rem 1.25rem;
+      border-radius: var(--radius-full);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
+      user-select: none;
     }
     .view-tab-btn.active {
       background: var(--purple-primary);
       border-color: var(--purple-primary);
       color: #ffffff;
-      box-shadow: 0 0 10px var(--purple-glow);
+      box-shadow: 0 0 14px var(--purple-glow);
+    }
+    .view-tab-btn:hover:not(.active) {
+      border-color: var(--purple-primary);
+      color: var(--text-primary);
     }
 
-    /* Modal */
+    /* KPI Cards */
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: #3b3f5c;
+    }
+    .kpi-label {
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+    .kpi-value {
+      font-size: 2.2rem;
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 0.35rem;
+    }
+    .kpi-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Modal Styling */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(12, 13, 20, 0.8);
-      backdrop-filter: blur(4px);
+      background: rgba(12, 13, 20, 0.85);
+      backdrop-filter: blur(8px);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 99999;
-      padding: 1rem;
+      padding: 1.5rem;
     }
     .modal-overlay.active {
       display: flex;
     }
     .modal-card {
-      background: #161826;
+      background: var(--card-bg);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
-      max-width: 580px;
+      max-width: 620px;
       width: 100%;
       max-height: 90vh;
       overflow-y: auto;
-      padding: 2rem;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      padding: 2.25rem;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
     }
     .form-group {
-      margin-bottom: 1rem;
+      margin-bottom: 1.25rem;
     }
     .form-group label {
       display: block;
       font-size: 0.8rem;
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
       color: var(--text-muted);
-      margin-bottom: 0.4rem;
-      letter-spacing: 0.5px;
+      margin-bottom: 0.45rem;
+      letter-spacing: 0.6px;
     }
     .form-group input, .form-group textarea, .form-group select {
       width: 100%;
@@ -71,40 +110,136 @@
 <body>
   <div id="navbar-placeholder"></div>
 
-  <div class="container" style="max-width: 1180px; margin: 2rem auto; padding: 0 1.5rem;">
-    <!-- Page Header (Matches Exact Right Screenshot) -->
-    <div class="page-header-row" style="margin-bottom: 1.5rem;">
+  <!-- =====================================================================
+       ACCESS DENIED NOTICE (Shown if a normal customer opens this page)
+       ===================================================================== -->
+  <div id="accessDeniedNotice" style="display: none; max-width: 580px; margin: 6rem auto; text-align: center; padding: 3rem 2rem; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
+    <div style="font-size: 3.5rem; margin-bottom: 1rem;">🔒</div>
+    <h2 style="font-size: 1.75rem; font-weight: 900; color: var(--text-primary); margin-bottom: 0.6rem;">Access Denied</h2>
+    <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 2rem; line-height: 1.5;">
+      The <strong>Host & Admin Dashboard</strong> is restricted to approved organizer accounts only.<br>
+      You are currently signed in as a <strong>Customer</strong> (<span id="deniedUserEmail" style="color: var(--text-primary); font-weight: 700;"></span>).
+    </p>
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+      <a href="events.html" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
+        ← Browse Events Catalog
+      </a>
+      <a href="login.html" class="btn btn-secondary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
+        Switch to Organizer Role
+      </a>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       ORGANIZER / HOST MAIN CONTENT
+       ===================================================================== -->
+  <div id="organizerMainContent" class="events-page-fullscreen" style="display: none;">
+    <!-- Page Header & Action Controls -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1.5rem;">
       <div>
-        <h1 class="page-title" style="font-size: 1.6rem; font-weight: 800;">
-          Lock Engine & Telemetry Overview
+        <h1 style="font-size: 2rem; font-weight: 900; color: var(--text-primary); margin-bottom: 0.3rem;">
+          🎪 Host & Admin Dashboard
         </h1>
-        <p class="page-subtitle">Real-time distributed mutex telemetry and consensus health</p>
+        <p style="font-size: 0.95rem; color: var(--text-muted);">
+          Manage event inventory, ticket sales, verified revenue, and real-time distributed mutex health
+        </p>
       </div>
 
       <!-- Quick Action Controls -->
-      <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <button onclick="switchView('telemetry')" id="tabBtnTelemetry" class="view-tab-btn active">
-          ⚡ Live Mutex Telemetry
+      <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+        <button onclick="switchView('events')" id="tabBtnEvents" class="view-tab-btn active">
+          🎪 Event Catalogs & Revenue
         </button>
-        <button onclick="switchView('events')" id="tabBtnEvents" class="view-tab-btn">
-          🎪 Manage Events & Revenue
+        <button onclick="switchView('telemetry')" id="tabBtnTelemetry" class="view-tab-btn">
+          ⚡ Distributed Lock Telemetry
         </button>
-        <button onclick="openCreateModal()" class="btn btn-sm btn-primary" style="font-weight: 700;">
-          + New Event
+        <a href="analytics.html" class="view-tab-btn" style="text-decoration: none;">
+          📊 Benchmarks & Metrics
+        </a>
+        <a href="activity.html" class="view-tab-btn" style="text-decoration: none;">
+          📋 Audit Activity Logs
+        </a>
+        <button onclick="openCreateModal()" class="btn btn-primary" style="padding: 0.55rem 1.35rem; font-weight: 800; font-size: 0.95rem;">
+          + Create New Event
         </button>
       </div>
     </div>
 
-    <!-- ====================================================================
-         VIEW 1: LOCK ENGINE & TELEMETRY OVERVIEW (Matches Right Screenshot)
-         ==================================================================== -->
-    <div id="telemetryView">
+    <!-- ===================================================================
+         VIEW 1: EVENT MANAGEMENT & REVENUE (Default Active View for Hosts)
+         =================================================================== -->
+    <div id="eventsView">
+      <!-- 4 KPI Metric Cards -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Verified Revenue</div>
+          <div id="kpiRevenue" class="kpi-value" style="color: #4ade80;">$0.00</div>
+          <div class="kpi-sub">From successfully settled bookings</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Tickets Sold</div>
+          <div id="kpiSoldSeats" class="kpi-value" style="color: #c084fc;">0</div>
+          <div class="kpi-sub">Permanently booked & confirmed</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Active 5-Min Holds</div>
+          <div id="kpiReservedSeats" class="kpi-value" style="color: #fbbf24;">0</div>
+          <div class="kpi-sub">Currently in checkout pipeline</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Overall Occupancy Rate</div>
+          <div id="kpiOccupancy" class="kpi-value" style="color: var(--text-primary);">0.0%</div>
+          <div class="kpi-sub">Across all event seats</div>
+        </div>
+      </div>
+
+      <!-- Managed Events Table Card -->
+      <div class="card" style="padding: 0; overflow: hidden; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+        <div style="padding: 1.25rem 1.75rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--card-inner);">
+          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);">🎪 Managed Event Catalogs</h2>
+          <span id="eventsManagedCount" class="badge badge-purple" style="font-size: 0.85rem; padding: 0.4rem 0.85rem;">
+            4 Events
+          </span>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="table" style="font-size: 0.95rem;">
+            <thead>
+              <tr>
+                <th style="padding: 1rem 1.25rem;">Event Title</th>
+                <th style="padding: 1rem 1.25rem;">Venue</th>
+                <th style="padding: 1rem 1.25rem;">Date</th>
+                <th style="padding: 1rem 1.25rem;">Price</th>
+                <th style="padding: 1rem 1.25rem;">Seat Inventory</th>
+                <th style="padding: 1rem 1.25rem;">Status</th>
+                <th style="padding: 1rem 1.25rem; text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="eventsTableBody">
+              <tr>
+                <td colspan="7" class="state-box" style="padding: 3rem 1.5rem; font-size: 1rem;">
+                  Loading managed events...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         VIEW 2: DISTRIBUTED LOCK TELEMETRY & CLUSTER OVERVIEW
+         =================================================================== -->
+    <div id="telemetryView" style="display: none;">
       <!-- Top Grid: Latency Chart + ZooKeeper Nodes -->
       <div class="telemetry-grid-top">
         <!-- Card 1: Distributed Lock Latency Canvas -->
         <div class="latency-card">
           <div class="latency-header">
-            <span class="latency-title">Distributed Lock Latency</span>
+            <span class="latency-title" style="font-size: 1.15rem; font-weight: 800;">Distributed Lock Latency</span>
             <div class="latency-badge">
               <span class="latency-badge-dot"></span>
               <span>● Live ▾</span>
@@ -112,8 +247,8 @@
           </div>
 
           <!-- High-Tech Area Canvas -->
-          <div class="latency-canvas-container">
-            <canvas id="latencyCanvas" width="520" height="220" style="width: 100%; height: 100%;"></canvas>
+          <div class="latency-canvas-container" style="height: 240px;">
+            <canvas id="latencyCanvas" width="580" height="240" style="width: 100%; height: 100%;"></canvas>
             <!-- Hover Tooltip -->
             <div id="canvasTooltip" style="position: absolute; top: 38px; left: 340px; background: rgba(22, 24, 38, 0.95); border: 1px solid #4a3e75; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; color: #f1f5f9; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 6px;">
               <span style="color: var(--text-muted);">Tooltip</span>
@@ -124,7 +259,7 @@
 
         <!-- Card 2: Active ZooKeeper Nodes Grid -->
         <div class="nodes-card">
-          <div class="nodes-title">Active ZooKeeper Nodes</div>
+          <div class="nodes-title" style="font-size: 1.15rem; font-weight: 800;">Active ZooKeeper Nodes</div>
           <div class="nodes-grid">
             <!-- Node 1 (Leader) -->
             <div class="node-item leader">
@@ -162,7 +297,7 @@
               <span class="pulse-wave" title="Heartbeat ACK Received">ﮩـ٨ـ</span>
             </div>
 
-            <!-- Node 5 (Follower - Spans across or 5th box) -->
+            <!-- Node 5 (Follower) -->
             <div class="node-item" style="grid-column: 1 / -1; max-width: 48%;">
               <div>
                 <div class="node-name">zk-node-5</div>
@@ -175,10 +310,10 @@
       </div>
 
       <!-- Bottom Card: Real-time Seat Lock Acquisition Logs (Terminal) -->
-      <div class="terminal-card">
+      <div class="terminal-card" style="margin-top: 1.5rem;">
         <div class="terminal-header">
           <div class="terminal-title">
-            <span>Real-time Seat Lock Acquisition Logs</span>
+            <span style="font-size: 1.05rem; font-weight: 800;">Real-time Seat Lock Acquisition Logs</span>
           </div>
           <div class="terminal-controls">
             <span class="term-dot" style="background: #ef4444;" title="Close"></span>
@@ -187,109 +322,44 @@
           </div>
         </div>
 
-        <div id="terminalLogBody" class="terminal-body">
-          <!-- Real-time formatted log lines -->
+        <div id="terminalLogBody" class="terminal-body" style="font-size: 0.9rem; max-height: 320px;">
           <div><span class="term-time">[11:17:42]</span> <span class="term-acquired">LOCK_ACQUIRED:</span> seat_43 <span class="term-node">[NODE_01]</span></div>
           <div><span class="term-time">[11:17:42]</span> <span class="term-acquired">LOCK_ACQUIRED:</span> seat_43 <span class="term-node">[NODE_01]</span></div>
           <div><span class="term-time">[11:17:42]</span> <span class="term-acquired">LOCK_ACQUIRED:</span> seat_43 <span class="term-node">[NODE_01]</span></div>
-          <div><span class="term-time">[11:17:42]</span> <span class="term-acquired">LOCK_ACQUIRED:</span> seat_43 <span class="term-node">[NODE_01]</span></div>
-          <div><span class="term-time">[11:17:42]</span> <span class="term-acquired">LOCK_ACQUIRED:</span> seat_43 <span class="term-node">[NODE_01]</span></div>
-          <div><span class="term-time">[11:17:45]</span> <span class="term-released">RELEASED:</span> seat_12 <span class="term-node">[NODE_03]</span></div>
-          <div><span class="term-time">[11:17:45]</span> <span class="term-released">RELEASED:</span> seat_12 <span class="term-node">[NODE_03]</span></div>
           <div><span class="term-time">[11:17:45]</span> <span class="term-released">RELEASED:</span> seat_12 <span class="term-node">[NODE_03]</span></div>
           <div><span class="term-time">[11:17:45]</span> <span class="term-released">RELEASED:</span> seat_14 <span class="term-node">[NODE_03]</span></div>
-          <div><span class="term-time">[11:17:45]</span> <span class="term-released">RELEASED:</span> seat_12 <span class="term-node">[NODE_03]</span></div>
-          <div><span class="term-time">[11:17:45]</span> <span class="term-released">RELEASED:</span> seat_12 <span class="term-node">[NODE_03]</span></div>
           <div><span class="term-time">[11:17:46]</span> <span class="term-pending">PENDING:</span> seat_14</div>
         </div>
       </div>
     </div>
 
-    <!-- ====================================================================
-         VIEW 2: EVENT & REVENUE MANAGEMENT
-         ==================================================================== -->
-    <div id="eventsView" style="display: none;">
-      <!-- KPI Metric Cards -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-        <div class="card">
-          <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Total Revenue</div>
-          <div id="kpiRevenue" style="font-size: 1.8rem; font-weight: 800; color: #4ade80; margin: 0.25rem 0;">$0.00</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">From verified bookings</div>
-        </div>
-
-        <div class="card">
-          <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Tickets Sold</div>
-          <div id="kpiSoldSeats" style="font-size: 1.8rem; font-weight: 800; color: #c084fc; margin: 0.25rem 0;">0</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">Permanently settled</div>
-        </div>
-
-        <div class="card">
-          <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Active 5-Min Holds</div>
-          <div id="kpiReservedSeats" style="font-size: 1.8rem; font-weight: 800; color: #fbbf24; margin: 0.25rem 0;">0</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">Currently in checkout</div>
-        </div>
-
-        <div class="card">
-          <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Occupancy Rate</div>
-          <div id="kpiOccupancy" style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary); margin: 0.25rem 0;">0.0%</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">Across all events</div>
-        </div>
-      </div>
-
-      <!-- Managed Events Table -->
-      <div class="card" style="margin-bottom: 2rem; padding: 0; overflow: hidden;">
-        <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-          <h2 style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary);">🎪 Event Catalogs</h2>
-          <span id="eventsManagedCount" class="badge badge-purple">4 Events</span>
-        </div>
-
-        <div style="overflow-x: auto;">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Event Title</th>
-                <th>Venue</th>
-                <th>Date</th>
-                <th>Price</th>
-                <th>Seat Breakdown</th>
-                <th>Status</th>
-                <th style="text-align: right;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="eventsTableBody">
-              <tr>
-                <td colspan="7" class="state-box">Loading managed events...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
   </div>
 
-  <!-- Create Event Modal -->
+  <!-- =====================================================================
+       CREATE NEW EVENT MODAL FORM (Organizer Exclusive)
+       ===================================================================== -->
   <div id="createEventModal" class="modal-overlay">
     <div class="modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
-        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);">Create New Event</h3>
-        <button onclick="closeCreateModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+        <h3 style="font-size: 1.35rem; font-weight: 900; color: var(--text-primary);">Create New Event</h3>
+        <button onclick="closeCreateModal()" style="background: none; border: none; font-size: 1.75rem; cursor: pointer; color: var(--text-muted);">&times;</button>
       </div>
 
       <form id="createEventForm" onsubmit="handleCreateEvent(event)">
         <div class="form-group">
           <label>Event Title *</label>
-          <input type="text" id="eventTitleInput" required placeholder="e.g. Google Developer Conference 2026" class="form-control">
+          <input type="text" id="eventTitleInput" required placeholder="e.g. Next-Gen Cloud & AI Summit 2026" class="form-control">
         </div>
 
         <div class="form-group">
           <label>Description</label>
-          <textarea id="eventDescInput" rows="3" placeholder="Keynotes, speakers, and schedule details..." class="form-control"></textarea>
+          <textarea id="eventDescInput" rows="3" placeholder="Keynotes, keynote speaker bios, and session tracks..." class="form-control"></textarea>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
           <div class="form-group">
             <label>Venue *</label>
-            <input type="text" id="eventVenueInput" required placeholder="Moscone Center West" class="form-control">
+            <input type="text" id="eventVenueInput" required placeholder="e.g. Moscone Convention Center" class="form-control">
           </div>
           <div class="form-group">
             <label>Event Date & Time *</label>
@@ -300,53 +370,76 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
           <div class="form-group">
             <label>Ticket Price ($) *</label>
-            <input type="number" id="eventPriceInput" required min="0" step="0.01" value="299.00" class="form-control">
+            <input type="number" id="eventPriceInput" step="0.01" min="0" required placeholder="299.00" class="form-control">
           </div>
           <div class="form-group">
-            <label>Total Seats *</label>
-            <input type="number" id="eventSeatsInput" required min="1" max="200" value="30" class="form-control">
+            <label>Total Seats (Auditorium Size) *</label>
+            <input type="number" id="eventSeatsInput" min="1" max="500" required placeholder="30" value="30" class="form-control">
           </div>
         </div>
 
-        <div class="form-group">
-          <label>Poster Image File (Optional)</label>
-          <input type="file" id="eventPosterFileInput" accept="image/*" class="form-control">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label>Publication Status</label>
+            <select id="eventStatusInput" class="form-control">
+              <option value="PUBLISHED">PUBLISHED (Live to Customers)</option>
+              <option value="DRAFT">DRAFT (Hidden)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Event Poster Image</label>
+            <input type="file" id="eventPosterFileInput" accept="image/*" class="form-control" style="padding: 0.35rem 0.5rem;">
+          </div>
         </div>
 
-        <div class="form-group">
-          <label>Publication Status</label>
-          <select id="eventStatusInput" class="form-control">
-            <option value="PUBLISHED">PUBLISHED (Visible to Customers)</option>
-            <option value="DRAFT">DRAFT</option>
-          </select>
-        </div>
-
-        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
-          <button type="button" onclick="closeCreateModal()" class="btn btn-secondary">Cancel</button>
-          <button type="submit" id="submitCreateEventBtn" class="btn btn-primary" style="font-weight: 700;">
-            🚀 Create Event & Generate Seats
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+          <button type="button" onclick="closeCreateModal()" class="btn btn-secondary" style="padding: 0.65rem 1.35rem; font-weight: 700;">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" style="padding: 0.65rem 1.65rem; font-weight: 800;">
+            Publish Event
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <script src="js/booking-common.js"></script>
   <script>
-    renderNavbar("telemetry");
+    renderNavbar("organizer");
 
-    function switchView(view) {
+    // -----------------------------------------------------------------------
+    // Role Verification Check
+    // -----------------------------------------------------------------------
+    const currentUser = getUser();
+    if (!currentUser || currentUser.role !== "ORGANIZER") {
+      document.getElementById("deniedUserEmail").innerText = currentUser ? currentUser.email : "Not signed in";
+      document.getElementById("accessDeniedNotice").style.display = "block";
+      document.getElementById("organizerMainContent").style.display = "none";
+    } else {
+      document.getElementById("organizerMainContent").style.display = "flex";
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("tab") === "telemetry") {
+        switchView("telemetry");
+      } else {
+        loadEventsManagement();
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // View Switcher (Events & Revenue vs Telemetry)
+    // -----------------------------------------------------------------------
+    function switchView(viewName) {
       const telView = document.getElementById("telemetryView");
       const evView = document.getElementById("eventsView");
       const tabTel = document.getElementById("tabBtnTelemetry");
       const tabEv = document.getElementById("tabBtnEvents");
 
-      if (view === "telemetry") {
+      if (viewName === "telemetry") {
         telView.style.display = "block";
         evView.style.display = "none";
         tabTel.classList.add("active");
         tabEv.classList.remove("active");
-        drawLatencyChart();
+        setTimeout(drawLatencyChart, 50);
       } else {
         telView.style.display = "none";
         evView.style.display = "block";
@@ -357,8 +450,7 @@
     }
 
     // -----------------------------------------------------------------------
-    // Canvas Latency Curve Drawing (Replicates Right Screenshot Area Chart)
-    // Supports both Dark Mode (Purple/Cyan) and Light Mode (Warm Orange/Amber)
+    // Canvas Latency Curve Drawing
     // -----------------------------------------------------------------------
     function drawLatencyChart() {
       const canvas = document.getElementById("latencyCanvas");
@@ -370,50 +462,46 @@
 
       ctx.clearRect(0, 0, w, h);
 
-      // Background grid lines (y-axis: 0, 100ms, 200ms, 300ms, 400ms, 500ms)
       ctx.strokeStyle = isLight ? "#e5dac9" : "#1a1d2e";
       ctx.lineWidth = 1;
-      ctx.font = "10px sans-serif";
+      ctx.font = "11px sans-serif";
       ctx.fillStyle = isLight ? "#78716c" : "#64748b";
 
       const yLevels = [
         { label: "500ms", y: 30 },
-        { label: "400ms", y: 65 },
-        { label: "300ms", y: 100 },
-        { label: "200ms", y: 135 },
-        { label: "100ms", y: 170 },
-        { label: "0", y: 200 }
+        { label: "400ms", y: 70 },
+        { label: "300ms", y: 110 },
+        { label: "200ms", y: 150 },
+        { label: "100ms", y: 190 },
+        { label: "0", y: 220 }
       ];
 
       yLevels.forEach(lvl => {
         ctx.beginPath();
-        ctx.moveTo(40, lvl.y);
-        ctx.lineTo(w - 10, lvl.y);
+        ctx.moveTo(45, lvl.y);
+        ctx.lineTo(w - 15, lvl.y);
         ctx.stroke();
-        ctx.fillText(lvl.label, 4, lvl.y + 3);
+        ctx.fillText(lvl.label, 6, lvl.y + 4);
       });
 
-      // X-axis ticks (0, 100, 200, 300, 400, 500)
       const xTicks = [
-        { label: "0", x: 40 },
-        { label: "100", x: 120 },
-        { label: "200", x: 210 },
-        { label: "300", x: 300 },
-        { label: "400", x: 390 },
-        { label: "500", x: 480 }
+        { label: "0", x: 45 },
+        { label: "100", x: 135 },
+        { label: "200", x: 235 },
+        { label: "300", x: 335 },
+        { label: "400", x: 435 },
+        { label: "500", x: 535 }
       ];
       xTicks.forEach(t => {
-        ctx.fillText(t.label, t.x, 215);
+        ctx.fillText(t.label, t.x, 235);
       });
 
-      // Curve 1 (Primary Wave: Orange in Light Theme, Purple in Dark)
       const purplePoints = [
-        [40, 180], [90, 150], [130, 140], [180, 160], [210, 150],
-        [240, 175], [290, 80], [330, 50], [370, 130], [420, 140], [480, 120]
+        [45, 200], [100, 165], [145, 155], [200, 175], [235, 165],
+        [270, 190], [325, 90], [370, 55], [415, 145], [470, 155], [535, 135]
       ];
 
-      // Draw Gradient Fill 1
-      const pGrad = ctx.createLinearGradient(0, 40, 0, 200);
+      const pGrad = ctx.createLinearGradient(0, 40, 0, 220);
       if (isLight) {
         pGrad.addColorStop(0, "rgba(234, 88, 12, 0.45)");
         pGrad.addColorStop(1, "rgba(234, 88, 12, 0.0)");
@@ -423,7 +511,7 @@
       }
 
       ctx.beginPath();
-      ctx.moveTo(purplePoints[0][0], 200);
+      ctx.moveTo(purplePoints[0][0], 220);
       ctx.lineTo(purplePoints[0][0], purplePoints[0][1]);
       for (let i = 1; i < purplePoints.length; i++) {
         const xc = (purplePoints[i][0] + purplePoints[i - 1][0]) / 2;
@@ -431,12 +519,11 @@
         ctx.quadraticCurveTo(purplePoints[i - 1][0], purplePoints[i - 1][1], xc, yc);
       }
       ctx.lineTo(purplePoints[purplePoints.length - 1][0], purplePoints[purplePoints.length - 1][1]);
-      ctx.lineTo(purplePoints[purplePoints.length - 1][0], 200);
+      ctx.lineTo(purplePoints[purplePoints.length - 1][0], 220);
       ctx.closePath();
       ctx.fillStyle = pGrad;
       ctx.fill();
 
-      // Draw Stroke 1
       ctx.beginPath();
       ctx.moveTo(purplePoints[0][0], purplePoints[0][1]);
       for (let i = 1; i < purplePoints.length; i++) {
@@ -448,13 +535,12 @@
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
-      // Curve 2 (Secondary Wave: Warm Amber in Light Theme, Cyan in Dark)
       const cyanPoints = [
-        [40, 195], [80, 185], [120, 150], [170, 135], [220, 145],
-        [260, 160], [300, 110], [340, 90], [380, 155], [430, 165], [480, 150]
+        [45, 215], [90, 205], [135, 165], [190, 150], [245, 160],
+        [290, 175], [335, 120], [380, 100], [425, 170], [480, 180], [535, 165]
       ];
 
-      const cGrad = ctx.createLinearGradient(0, 90, 0, 200);
+      const cGrad = ctx.createLinearGradient(0, 90, 0, 220);
       if (isLight) {
         cGrad.addColorStop(0, "rgba(217, 119, 6, 0.35)");
         cGrad.addColorStop(1, "rgba(217, 119, 6, 0.0)");
@@ -464,7 +550,7 @@
       }
 
       ctx.beginPath();
-      ctx.moveTo(cyanPoints[0][0], 200);
+      ctx.moveTo(cyanPoints[0][0], 220);
       ctx.lineTo(cyanPoints[0][0], cyanPoints[0][1]);
       for (let i = 1; i < cyanPoints.length; i++) {
         const xc = (cyanPoints[i][0] + cyanPoints[i - 1][0]) / 2;
@@ -472,7 +558,7 @@
         ctx.quadraticCurveTo(cyanPoints[i - 1][0], cyanPoints[i - 1][1], xc, yc);
       }
       ctx.lineTo(cyanPoints[cyanPoints.length - 1][0], cyanPoints[cyanPoints.length - 1][1]);
-      ctx.lineTo(cyanPoints[cyanPoints.length - 1][0], 200);
+      ctx.lineTo(cyanPoints[cyanPoints.length - 1][0], 220);
       ctx.closePath();
       ctx.fillStyle = cGrad;
       ctx.fill();
@@ -488,17 +574,15 @@
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // High-point tooltip indicator dot
       ctx.beginPath();
-      ctx.arc(330, 50, 4, 0, Math.PI * 2);
+      ctx.arc(370, 55, 5, 0, Math.PI * 2);
       ctx.fillStyle = isLight ? "#ea580c" : "#ffffff";
       ctx.fill();
       ctx.strokeStyle = isLight ? "#c2410c" : "#a855f7";
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
       ctx.stroke();
     }
 
-    // Redraw canvas on theme change
     window.addEventListener("themechanged", () => {
       drawLatencyChart();
     });
@@ -514,7 +598,6 @@
         const activeLocks = data.active_locks || [];
         const termBody = document.getElementById("terminalLogBody");
 
-        // Format live logs
         const now = new Date();
         const timeStr = now.toTimeString().split(" ")[0];
 
@@ -552,22 +635,39 @@
           const tbody = document.getElementById("eventsTableBody");
           document.getElementById("eventsManagedCount").innerText = `${events.length} Events`;
 
+          if (events.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="state-box">No events created yet. Click "+ Create New Event" above!</td></tr>`;
+            return;
+          }
+
           tbody.innerHTML = events.map(e => `
             <tr>
-              <td style="font-weight: 700; color: var(--text-primary);">${escapeHtml(e.title)}</td>
-              <td>${escapeHtml(e.venue)}</td>
-              <td style="font-size: 0.85rem; color: var(--text-muted);">${formatDate(e.event_date)}</td>
-              <td style="font-weight: 800; color: var(--purple-primary);">$${parseFloat(e.ticket_price).toFixed(2)}</td>
-              <td>
-                <span class="badge badge-green">${e.available_seats} Avail</span>
-                <span class="badge badge-amber">${e.reserved_seats} Hold</span>
-                <span class="badge badge-muted">${e.sold_seats} Sold</span>
+              <td style="padding: 1rem 1.25rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <img src="${e.poster || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800'}" alt="Poster" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; background: var(--card-inner);" onerror="this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800'">
+                  <div>
+                    <div style="font-weight: 800; color: var(--text-primary);">${escapeHtml(e.title)}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">${e.total_seats} total seats</div>
+                  </div>
+                </div>
               </td>
-              <td>
-                <span class="badge ${e.status === 'PUBLISHED' ? 'badge-purple' : 'badge-muted'}">${e.status}</span>
+              <td style="padding: 1rem 1.25rem; font-weight: 600; color: var(--text-secondary);">${escapeHtml(e.venue)}</td>
+              <td style="padding: 1rem 1.25rem; font-size: 0.88rem; color: var(--text-muted);">${formatDate(e.event_date)}</td>
+              <td style="padding: 1rem 1.25rem; font-weight: 800; color: var(--purple-primary);">$${parseFloat(e.ticket_price).toFixed(2)}</td>
+              <td style="padding: 1rem 1.25rem;">
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <span class="badge badge-green">${e.available_seats} Avail</span>
+                  <span class="badge badge-amber">${e.reserved_seats} Hold</span>
+                  <span class="badge badge-muted">${e.sold_seats} Sold</span>
+                </div>
               </td>
-              <td style="text-align: right;">
-                <button onclick="togglePublish(${e.id}, '${e.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'}')" class="btn btn-sm btn-secondary">
+              <td style="padding: 1rem 1.25rem;">
+                <span class="badge ${e.status === 'PUBLISHED' ? 'badge-purple' : 'badge-muted'}" style="font-size: 0.78rem; font-weight: 800;">
+                  ${e.status}
+                </span>
+              </td>
+              <td style="padding: 1rem 1.25rem; text-align: right;">
+                <button onclick="togglePublish(${e.id}, '${e.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'}')" class="btn btn-sm btn-secondary" style="font-weight: 700; font-size: 0.85rem; padding: 0.4rem 0.9rem;">
                   ${e.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}
                 </button>
               </td>
@@ -584,7 +684,7 @@
         method: "PATCH",
         body: JSON.stringify({ status })
       });
-      showToast(`Status updated to ${status}`, "success");
+      showToast(`Event status updated to ${status}`, "success");
       loadEventsManagement();
     }
 
@@ -639,8 +739,9 @@
 
     // Startup
     window.addEventListener("load", () => {
-      drawLatencyChart();
-      setInterval(pollLockTerminal, 3000);
+      if (currentUser && currentUser.role === "ORGANIZER") {
+        setInterval(pollLockTerminal, 3000);
+      }
     });
     window.addEventListener("resize", drawLatencyChart);
   </script>

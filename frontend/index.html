@@ -6,30 +6,11 @@
   <title>Mini ZooKeeper — Distributed Lock Service</title>
   <!-- Link to our clean external CSS stylesheet -->
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/booking-common.js"></script>
 </head>
 <body>
 
-  <!-- ===================================================================
-       1. TOP NAVIGATION BAR
-       =================================================================== -->
-  <header class="navbar">
-    <div class="nav-container">
-      <div class="nav-brand">
-        <span class="brand-icon">🔒</span>
-        <span class="brand-title">Mini ZooKeeper</span>
-      </div>
-      <nav class="nav-links">
-        <a href="events.html" class="nav-link" style="color: #60a5fa; font-weight: 700;">🎟️ Events & Tickets</a>
-        <a href="organizer.html" class="nav-link">Organizer</a>
-        <a href="index.html" class="nav-link active">Lock Manager</a>
-        <a href="analytics.html" class="nav-link">Telemetry</a>
-      </nav>
-      <div class="nav-status">
-        <span id="backend-status-indicator" class="status-dot connected"></span>
-        <span id="backend-status-text">Backend Connected</span>
-      </div>
-    </div>
-  </header>
+  <div id="navbar-placeholder"></div>
 
   <!-- ===================================================================
        2. MAIN CONTENT CONTAINER
@@ -346,6 +327,9 @@
   </footer>
 
   <!-- Script for Dashboard Logic -->
+  <script>
+    renderNavbar("organizer");
+  </script>
   <script src="js/dashboard.js"></script>
 </body>
 </html>
