@@ -55,7 +55,7 @@ except ImportError:
 
 # Optional FastAPI integration for the web dashboard and REST API
 try:
-    from fastapi import FastAPI, Query, File, UploadFile, HTTPException, Depends, Security, Header
+    from fastapi import FastAPI, Query, File, UploadFile, HTTPException, Depends, Security, Header, status
     from fastapi.responses import FileResponse, Response, RedirectResponse
     from fastapi.staticfiles import StaticFiles
     from pathlib import Path
