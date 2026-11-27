@@ -10,7 +10,8 @@
 <body>
   <div id="navbar-placeholder"></div>
 
-  <div class="container" style="max-width: 1440px; margin: 1.5rem auto; padding: 0 1.5rem;">
+  <!-- Fullscreen Edge-to-Edge Container -->
+  <div class="events-page-fullscreen">
     <!-- Two-Column Master-Detail Split Layout -->
     <div class="events-split-layout">
       
@@ -23,18 +24,18 @@
 
         <!-- Dynamic Event Timeline Feed -->
         <div id="eventsTimelineFeed">
-          <div class="state-box" style="padding: 2rem 1rem;">
-            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⏳</div>
+          <div class="state-box" style="padding: 3rem 1.5rem; font-size: 1.1rem;">
+            <div style="font-size: 2rem; margin-bottom: 0.75rem;">⏳</div>
             <div>Loading live events...</div>
           </div>
         </div>
       </div>
 
       <!-- ===================================================================
-           RIGHT COLUMN: Interactive Amphitheater Seating Arena
+           RIGHT COLUMN: Grand Auditorium Amphitheater Seating Arena
            =================================================================== -->
       <div class="seating-arena-panel">
-        <!-- Header: Title, Legend, and Engine Status -->
+        <!-- Header: Title, Legend, and Lock Engine Status -->
         <div class="seating-arena-header">
           <div class="seating-arena-title-group">
             <h1 class="seating-arena-title">Interactive Seat Booking</h1>
@@ -62,27 +63,27 @@
           </div>
         </div>
 
-        <!-- Amphitheater Bowl: Architectural Balcony Wings, Stage, & Seating Rows -->
+        <!-- Grand Amphitheater Bowl: Balcony Wings, Stage, & Curved Seating Rows -->
         <div class="amphitheater-bowl">
           <!-- Outer Architectural Tiered Curved Balcony Wings -->
-          <svg class="amphi-wings-svg" viewBox="0 0 760 480">
+          <svg class="amphi-wings-svg" viewBox="0 0 1100 580">
             <!-- Left curved balcony tiers -->
-            <path class="amphi-wing-path" d="M 120 120 C 60 180, 50 300, 110 400" />
-            <path class="amphi-wing-path" d="M 100 140 C 40 200, 30 320, 90 410" />
-            <path class="amphi-wing-path" d="M 140 110 C 80 170, 70 280, 130 390" />
+            <path class="amphi-wing-path" d="M 170 110 C 80 180, 70 340, 150 490" />
+            <path class="amphi-wing-path" d="M 140 130 C 50 200, 40 360, 120 505" />
+            <path class="amphi-wing-path" d="M 200 95 C 110 165, 100 320, 180 475" />
             <!-- Left architectural box dividers -->
-            <line x1="75" y1="180" x2="115" y2="160" class="amphi-wing-path" />
-            <line x1="45" y1="260" x2="90" y2="250" class="amphi-wing-path" />
-            <line x1="55" y1="340" x2="100" y2="330" class="amphi-wing-path" />
+            <line x1="105" y1="185" x2="165" y2="160" class="amphi-wing-path" />
+            <line x1="65" y1="285" x2="130" y2="270" class="amphi-wing-path" />
+            <line x1="75" y1="390" x2="140" y2="375" class="amphi-wing-path" />
 
             <!-- Right curved balcony tiers -->
-            <path class="amphi-wing-path" d="M 640 120 C 700 180, 710 300, 650 400" />
-            <path class="amphi-wing-path" d="M 660 140 C 720 200, 730 320, 670 410" />
-            <path class="amphi-wing-path" d="M 620 110 C 680 170, 690 280, 630 390" />
+            <path class="amphi-wing-path" d="M 930 110 C 1020 180, 1030 340, 950 490" />
+            <path class="amphi-wing-path" d="M 960 130 C 1050 200, 1060 360, 980 505" />
+            <path class="amphi-wing-path" d="M 900 95 C 990 165, 1000 320, 920 475" />
             <!-- Right architectural box dividers -->
-            <line x1="685" y1="180" x2="645" y2="160" class="amphi-wing-path" />
-            <line x1="715" y1="260" x2="670" y2="250" class="amphi-wing-path" />
-            <line x1="705" y1="340" x2="660" y2="330" class="amphi-wing-path" />
+            <line x1="995" y1="185" x2="935" y2="160" class="amphi-wing-path" />
+            <line x1="1035" y1="285" x2="970" y2="270" class="amphi-wing-path" />
+            <line x1="1025" y1="390" x2="960" y2="375" class="amphi-wing-path" />
           </svg>
 
           <!-- Stage Element -->
@@ -90,9 +91,9 @@
             STAGE
           </div>
 
-          <!-- Central Seating Layout Rows -->
+          <!-- Central Grand Auditorium Seating Layout (10 Curved Rows) -->
           <div id="arenaSeatingGrid" class="arena-seating-container">
-            <div class="state-box" style="padding: 2rem;">Loading seat layout...</div>
+            <div class="state-box" style="padding: 3rem; font-size: 1.15rem;">Loading auditorium seat layout...</div>
           </div>
         </div>
 
@@ -123,8 +124,8 @@
     let activeEvent = null;
     let eventSeats = [];
     let selectedSeatIds = new Set();
+    let seatObjectMap = new Map();
 
-    // Months lookup for timeline badge
     const MONTH_NAMES = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
     async function loadEventsData() {
@@ -151,9 +152,9 @@
         }
       } catch (err) {
         document.getElementById("eventsTimelineFeed").innerHTML = `
-          <div class="state-box" style="color: #ef4444;">
+          <div class="state-box" style="color: #ef4444; font-size: 1.1rem;">
             <p>Error loading events: ${escapeHtml(err.message)}</p>
-            <button onclick="loadEventsData()" class="btn btn-sm btn-primary" style="margin-top: 1rem;">Retry</button>
+            <button onclick="loadEventsData()" class="btn btn-primary" style="margin-top: 1rem;">Retry</button>
           </div>
         `;
       }
@@ -204,7 +205,7 @@
       activeEvent = allEvents.find(e => e.id === eventId);
       if (!activeEvent) return;
 
-      // Update active styling in timeline
+      // Update active highlight in timeline
       document.querySelectorAll(".timeline-item").forEach(item => item.classList.remove("active"));
       const activeEl = document.getElementById(`timeline-item-${eventId}`);
       if (activeEl) activeEl.classList.add("active");
@@ -226,62 +227,154 @@
 
     async function loadSeatsForEvent(eventId) {
       const grid = document.getElementById("arenaSeatingGrid");
-      grid.innerHTML = `<div class="state-box" style="padding: 2rem;">Loading seat layout...</div>`;
+      grid.innerHTML = `<div class="state-box" style="padding: 3rem; font-size: 1.15rem;">Loading auditorium seat layout...</div>`;
 
       try {
         const res = await fetch(`/api/events/${eventId}/seats`);
         if (!res.ok) throw new Error("Failed to load seats");
         eventSeats = await res.json();
-        renderArenaSeats(eventSeats);
+        renderAuditoriumArena(eventSeats);
       } catch (err) {
         grid.innerHTML = `<div class="state-box" style="color: #ef4444;"><p>Error: ${escapeHtml(err.message)}</p></div>`;
       }
     }
 
-    function renderArenaSeats(seats) {
+    /**
+     * Renders a Grand Auditorium Layout with 10 Curved Amphitheater Rows.
+     * Matches the authentic orientation from the user's reference screenshot:
+     * - Left Section (Balcony A): 4 seats
+     * - Aisle
+     * - Center Section (Orchestra): 10 seats
+     * - Aisle
+     * - Right Section (Balcony B): 4 seats
+     * Total = 18 seats per row x 10 rows = 180 auditorium seats.
+     * Real database seats are mapped into the prime Center Orchestra section,
+     * while surrounding seats represent booked auditorium audience members.
+     */
+    function renderAuditoriumArena(realSeats) {
       const grid = document.getElementById("arenaSeatingGrid");
-      if (!seats || seats.length === 0) {
-        grid.innerHTML = `<div class="state-box"><p>No seats configured for this event.</p></div>`;
-        return;
-      }
+      seatObjectMap.clear();
 
-      // Group seats into 10 rows (e.g. 10 seats per row)
-      const rowsCount = 10;
-      const seatsPerRow = Math.ceil(seats.length / rowsCount) || 10;
+      // Index real database seats
+      realSeats.forEach(s => {
+        seatObjectMap.set(s.id, s);
+      });
+
+      const totalRows = 10;
+      const leftSeatsCount = 4;
+      const centerSeatsCount = 10;
+      const rightSeatsCount = 4;
+      const seatsInRow = leftSeatsCount + centerSeatsCount + rightSeatsCount; // 18 seats
+
+      let realSeatIdx = 0;
       let rowsHtml = "";
 
-      for (let r = 0; r < rowsCount; r++) {
+      // We assign real database seats to prime center rows (Rows 3, 4, 5, etc.)
+      const primeStartRow = Math.max(1, Math.floor((totalRows - Math.ceil(realSeats.length / centerSeatsCount)) / 2));
+
+      for (let r = 0; r < totalRows; r++) {
         const rowNumber = r + 1;
-        const rowSeats = seats.slice(r * seatsPerRow, (r + 1) * seatsPerRow);
-        if (rowSeats.length === 0) continue;
+        const isPrimeCenterRow = r >= primeStartRow && realSeatIdx < realSeats.length;
 
-        let seatsDotsHtml = rowSeats.map(s => {
-          const isSelected = selectedSeatIds.has(s.id);
-          let statusClass = "open";
-          if (isSelected) {
-            statusClass = "selected";
-          } else if (s.status === "SOLD") {
-            statusClass = "booked";
-          } else if (s.status === "RESERVED") {
-            statusClass = "locked";
-          }
+        let leftDots = "";
+        let centerDots = "";
+        let rightDots = "";
 
-          const tooltip = `Seat ${s.seat_number} - ${s.status === 'SOLD' ? 'Booked' : s.status === 'RESERVED' ? 'Locked (Holding)' : 'Open'}`;
+        // Helper to compute amphitheater arc curvature (outer seats curve upwards towards stage)
+        const getArcTransform = (colIndex) => {
+          const dist = Math.abs(colIndex - 8.5); // Center is between 8 and 9
+          const offsetY = -Math.round(Math.pow(dist, 1.7) * 0.42);
+          return `transform: translateY(${offsetY}px);`;
+        };
 
-          return `
+        // 1. Left Wing Seats (Col 0..3)
+        for (let c = 0; c < leftSeatsCount; c++) {
+          const globalCol = c;
+          const arcStyle = getArcTransform(globalCol);
+          // Left wing seats are booked audience seats
+          leftDots += `
             <div 
-              id="seat-dot-${s.id}" 
-              class="seat-dot ${statusClass}" 
-              title="${tooltip}"
-              onclick="toggleSeatSelection(${s.id}, '${s.status}')">
+              class="seat-dot booked" 
+              style="${arcStyle}" 
+              title="Row ${rowNumber}, Seat ${c + 1} (Balcony A) - Booked"
+              onclick="showToast('Row ${rowNumber}, Seat ${c + 1} is already booked.', 'warning')">
             </div>
           `;
-        }).join("");
+        }
+
+        // 2. Center Orchestra Seats (Col 4..13)
+        for (let c = 0; c < centerSeatsCount; c++) {
+          const globalCol = leftSeatsCount + c;
+          const arcStyle = getArcTransform(globalCol);
+
+          if (isPrimeCenterRow && realSeatIdx < realSeats.length) {
+            // This is a REAL database seat!
+            const s = realSeats[realSeatIdx++];
+            const isSelected = selectedSeatIds.has(s.id);
+            let statusClass = "open";
+
+            if (isSelected) {
+              statusClass = "selected";
+            } else if (s.status === "SOLD") {
+              statusClass = "booked";
+            } else if (s.status === "RESERVED") {
+              statusClass = "locked";
+            }
+
+            const tooltip = `Seat ${s.seat_number} (Row ${rowNumber}) - ${s.status === 'SOLD' ? 'Booked' : s.status === 'RESERVED' ? 'Locked (5-min hold)' : 'Open'}`;
+
+            centerDots += `
+              <div 
+                id="seat-dot-${s.id}" 
+                class="seat-dot ${statusClass}" 
+                style="${arcStyle}" 
+                title="${tooltip}"
+                onclick="toggleSeatSelection(${s.id}, '${s.status}')">
+              </div>
+            `;
+          } else {
+            // Filler center seat (booked)
+            centerDots += `
+              <div 
+                class="seat-dot booked" 
+                style="${arcStyle}" 
+                title="Row ${rowNumber}, Seat ${c + 5} - Booked"
+                onclick="showToast('Seat is already booked.', 'warning')">
+              </div>
+            `;
+          }
+        }
+
+        // 3. Right Wing Seats (Col 14..17)
+        for (let c = 0; c < rightSeatsCount; c++) {
+          const globalCol = leftSeatsCount + centerSeatsCount + c;
+          const arcStyle = getArcTransform(globalCol);
+          // Right wing seats are booked audience seats
+          rightDots += `
+            <div 
+              class="seat-dot booked" 
+              style="${arcStyle}" 
+              title="Row ${rowNumber}, Seat ${c + 15} (Balcony B) - Booked"
+              onclick="showToast('Row ${rowNumber}, Seat ${c + 15} is already booked.', 'warning')">
+            </div>
+          `;
+        }
 
         rowsHtml += `
           <div class="seat-row">
             <span class="row-num">${rowNumber}</span>
-            <div class="row-seats-track">${seatsDotsHtml}</div>
+            <div class="row-seats-track">
+              <!-- Left Wing Section -->
+              ${leftDots}
+              <!-- Left Aisle -->
+              <div class="auditorium-aisle"></div>
+              <!-- Center Orchestra Section -->
+              ${centerDots}
+              <!-- Right Aisle -->
+              <div class="auditorium-aisle"></div>
+              <!-- Right Wing Section -->
+              ${rightDots}
+            </div>
             <span class="row-num">${rowNumber}</span>
           </div>
         `;
@@ -306,7 +399,7 @@
         selectedSeatIds.add(seatId);
       }
 
-      // Re-render seat classes
+      // Re-render dot classes
       eventSeats.forEach(s => {
         const el = document.getElementById(`seat-dot-${s.id}`);
         if (!el) return;
@@ -343,7 +436,7 @@
     async function handleBookSelectedSeats() {
       if (!activeEvent) return;
 
-      // If no seats selected, auto-select first available seat for effortless one-click booking
+      // If no seats selected yet, auto-select first available green seat for effortless one-click booking
       if (selectedSeatIds.size === 0) {
         const firstAvail = eventSeats.find(s => s.status === "AVAILABLE");
         if (firstAvail) {
