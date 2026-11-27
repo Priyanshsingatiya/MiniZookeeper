@@ -8,7 +8,7 @@
   <style>
     .auth-container {
       max-width: 440px;
-      margin: 4rem auto;
+      margin: 4.5rem auto;
       background: var(--card-bg);
       padding: 2.5rem;
       border-radius: var(--radius-lg);
@@ -31,17 +31,12 @@
       color: var(--text-primary);
       cursor: pointer;
       transition: all 0.2s ease;
+      margin-top: 0.5rem;
     }
     .google-btn:hover {
       background: #23273e;
       border-color: var(--purple-primary);
       box-shadow: 0 0 12px var(--purple-glow);
-    }
-    .demo-box {
-      margin-top: 2rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--border-subtle);
-      text-align: left;
     }
   </style>
 </head>
@@ -56,10 +51,6 @@
     </p>
 
     <!-- Sign-in Form -->
-    <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.35); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-bottom: 1.5rem; text-align: left; font-size: 0.85rem; color: #c084fc;">
-      ⚡ <strong>Host Access:</strong> Anyone with Full Name <strong>"zookeeper"</strong> gets instant access to the <strong>Host Dashboard</strong>!
-    </div>
-
     <form id="loginForm" onsubmit="handleManualLogin(event)">
       <div style="margin-bottom: 1.25rem; text-align: left;">
         <label style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem; color: var(--text-muted); letter-spacing: 0.5px;">
@@ -68,11 +59,10 @@
         <input type="email" id="emailInput" required placeholder="your.name@gmail.com" class="form-control" style="width: 100%;">
       </div>
       <div style="margin-bottom: 1.5rem; text-align: left;">
-        <label style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem; color: var(--text-muted); letter-spacing: 0.5px;">
-          <span>Full Name</span>
-          <span style="color: var(--purple-primary); text-transform: none; font-weight: 800;">Type "zookeeper" for Host</span>
+        <label style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem; color: var(--text-muted); letter-spacing: 0.5px;">
+          Full Name
         </label>
-        <input type="text" id="nameInput" placeholder="Enter 'zookeeper' or your name" class="form-control" style="width: 100%;">
+        <input type="text" id="nameInput" placeholder="Your Name" class="form-control" style="width: 100%;">
       </div>
 
       <button type="submit" class="google-btn">
@@ -82,37 +72,14 @@
           <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
           <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
         </svg>
-        <span>Sign In</span>
+        <span>Sign In with Google</span>
       </button>
     </form>
-
-    <!-- Viva Demo Quick Login Shortcuts -->
-    <div class="demo-box">
-      <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--purple-primary); margin-bottom: 0.75rem; letter-spacing: 0.5px;">
-        ⚡ Instant 1-Click Role Login
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 0.6rem;">
-        <button onclick="loginAs('admin@zookeeper.com', 'zookeeper')" class="btn btn-sm btn-primary" style="text-align: left; padding: 0.65rem 0.95rem; font-size: 0.88rem; font-weight: 800; display: flex; align-items: center; justify-content: space-between;">
-          <span>👑 Host & Organizer Dashboard</span>
-          <span style="font-size: 0.75rem; opacity: 0.85;">Name: "zookeeper"</span>
-        </button>
-        <button onclick="loginAs('customer@example.com', 'Alex Customer')" class="btn btn-sm btn-secondary" style="text-align: left; padding: 0.65rem 0.95rem; font-size: 0.88rem; display: flex; align-items: center; justify-content: space-between;">
-          <span>👤 Customer / Client Portal</span>
-          <span style="font-size: 0.75rem; opacity: 0.7;">Alex Customer</span>
-        </button>
-      </div>
-    </div>
   </div>
 
   <script src="js/booking-common.js"></script>
   <script>
     renderNavbar("login");
-
-    async function loginAs(email, name) {
-      document.getElementById("emailInput").value = email;
-      document.getElementById("nameInput").value = name;
-      await performLogin(email, name);
-    }
 
     async function handleManualLogin(e) {
       e.preventDefault();
@@ -131,10 +98,10 @@
         const data = await res.json();
         if (res.ok && data.success) {
           setUserSession(data.user, data.access_token);
-          showToast(`Welcome ${data.user.name}! Role: ${data.user.role}`, "success");
+          showToast(`Welcome ${data.user.name}!`, "success");
           setTimeout(() => {
             window.location.href = data.redirect_url;
-          }, 600);
+          }, 500);
         } else {
           showToast(data.detail || "Sign in failed.", "danger");
         }
