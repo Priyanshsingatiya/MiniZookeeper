@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/**/*.py": {
+      "excludeFiles": "{tests/**,*.md}"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.py" },
+    { "source": "/analytics/(.*)", "destination": "/api/index.py" },
+    { "source": "/docs", "destination": "/api/index.py" },
+    { "source": "/openapi.json", "destination": "/api/index.py" },
+    { "source": "/favicon.ico", "destination": "/frontend/favicon.ico" },
+    { "source": "/favicon-16x16.png", "destination": "/frontend/favicon-16x16.png" },
+    { "source": "/favicon-32x32.png", "destination": "/frontend/favicon-32x32.png" },
+    { "source": "/apple-touch-icon.png", "destination": "/frontend/apple-touch-icon.png" },
+    { "source": "/css/:path*", "destination": "/frontend/css/:path*" },
+    { "source": "/js/:path*", "destination": "/frontend/js/:path*" },
+    { "source": "/:file.html", "destination": "/frontend/:file.html" },
+    { "source": "/frontend", "destination": "/frontend/index.html" },
+    { "source": "/frontend/", "destination": "/frontend/index.html" },
+    { "source": "/", "destination": "/frontend/events.html" }
+  ]
+}
+

@@ -8,12 +8,25 @@ import math
 from pathlib import Path
 
 
+ROOT_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
+
+def _resolve_data_path(path_value: str) -> Path:
+    """Resolve a relative data path against cwd or the repository root."""
+    p = Path(path_value)
+    if not p.exists() and not p.is_absolute():
+        candidate = Path(__file__).resolve().parent.parent / p
+        if candidate.exists():
+            return candidate
+    return p
+
+
 def read_logs(filepath="data/locks.csv"):
     """
     Reads the CSV log file and returns a list of row dictionaries.
     Handles missing or empty files gracefully.
     """
-    csv_file = Path(filepath)
+    csv_file = _resolve_data_path(filepath)
     if not csv_file.exists() or csv_file.stat().st_size == 0:
         return []
 
@@ -152,7 +165,7 @@ def get_summary(filepath="data/locks.csv"):
 
 def get_performance_summary(filepath="data/benchmark_summary.csv"):
     """Reads the benchmark summary CSV and returns a list of dictionaries."""
-    csv_file = Path(filepath)
+    csv_file = _resolve_data_path(filepath)
     if not csv_file.exists():
         return []
     records = []
@@ -171,7 +184,7 @@ def get_performance_summary(filepath="data/benchmark_summary.csv"):
 
 def get_charts_info(data_dir="data"):
     """Returns paths and descriptions for generated benchmark charts."""
-    folder = Path(data_dir)
+    folder = _resolve_data_path(data_dir)
     chart_files = {
         "chart_wait_time.png": "Number of processes vs Average waiting time",
         "chart_timeouts.png": "Number of processes vs Timeout count",
@@ -233,7 +246,7 @@ try:
         if chart_name not in valid_charts:
             raise HTTPException(status_code=404, detail="Chart not found")
 
-        chart_path = Path("data") / chart_name
+        chart_path = _resolve_data_path("data") / chart_name
         if not chart_path.exists():
             raise HTTPException(status_code=404, detail="Chart image file has not been generated yet")
 

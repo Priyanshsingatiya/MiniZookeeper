@@ -28,8 +28,9 @@ from pydantic import BaseModel, Field
 import os
 from datetime import datetime, timezone, timedelta
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_DIR = os.path.join(BASE_DIR, "..", "uploaded_resources")
-POSTER_DIR = os.path.join(BASE_DIR, "..", "uploaded_resources", "posters")
+IS_VERCEL = bool(os.getenv("VERCEL"))
+UPLOAD_DIR = "/tmp/uploaded_resources" if IS_VERCEL else os.path.join(BASE_DIR, "..", "uploaded_resources")
+POSTER_DIR = os.path.join(UPLOAD_DIR, "posters")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(POSTER_DIR, exist_ok=True)
 
@@ -328,6 +329,14 @@ if FASTAPI_AVAILABLE:
             "version": "1.0.0"
         }
 
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon():
+        """Serve the site favicon from the frontend directory."""
+        ico_path = frontend_path / "favicon.ico"
+        if ico_path.exists():
+            return FileResponse(str(ico_path), media_type="image/x-icon")
+        raise HTTPException(status_code=404, detail="Favicon not found")
+
     @app.post("/api/lock/acquire")
     def endpoint_acquire(payload: AcquireRequest):
         """API operation to acquire a lock."""
@@ -500,10 +509,17 @@ if FASTAPI_AVAILABLE:
                 except Exception:
                     pass
 
-        asyncio.create_task(periodic_cleanup())
+        if not IS_VERCEL:
+            asyncio.create_task(periodic_cleanup())
 
     try:
         init_db()
+        if IS_VERCEL:
+            db = SessionLocal()
+            try:
+                seed_sample_events(db)
+            finally:
+                db.close()
     except Exception as e:
         print(f"Warning: could not initialize database: {e}")
 

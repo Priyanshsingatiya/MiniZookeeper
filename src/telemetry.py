@@ -75,8 +75,13 @@ def record_event(event_dict, filepath="data/locks.csv"):
         "hold_ms": hold_ms,
     }
 
-    # 5. Ensure directory exists
+    # 5. Ensure directory exists (use writable /tmp fallback on Vercel serverless)
     file_path = Path(filepath)
+    if os.getenv("VERCEL") and not file_path.is_absolute():
+        tmp_path = Path("/tmp") / file_path.name
+        if not tmp_path.exists() and file_path.exists():
+            tmp_path.write_bytes(file_path.read_bytes())
+        file_path = tmp_path
     file_path.parent.mkdir(parents=True, exist_ok=True)
 
     # 6. Open file and use file locking to prevent corrupt writes across processes

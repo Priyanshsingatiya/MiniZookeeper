@@ -42,11 +42,14 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Session
 # 1. Database Connection & File Setup
 # ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
+IS_VERCEL = bool(os.getenv("VERCEL"))
+DATA_DIR = Path("/tmp/minizookeeper_data") if IS_VERCEL else (BASE_DIR / "data")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Default to SQLite database inside data/minizookeeper.db
+# Default to SQLite database inside data/minizookeeper.db (or /tmp on Vercel serverless)
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATA_DIR / 'minizookeeper.db'}")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Create database engine
 engine = create_engine(

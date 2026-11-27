@@ -26,7 +26,7 @@ except ImportError:
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LOCKS_DIR = os.path.join(BASE_DIR, "..", "locks_data")
+LOCKS_DIR = "/tmp/minizookeeper_locks" if os.getenv("VERCEL") else os.path.join(BASE_DIR, "..", "locks_data")
 os.makedirs(LOCKS_DIR, exist_ok=True)
 
 
