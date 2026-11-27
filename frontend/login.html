@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,6 +17,7 @@
       border: 1px solid var(--border-color);
       text-align: center;
     }
+
     .google-btn {
       display: flex;
       align-items: center;
@@ -33,6 +35,7 @@
       transition: all 0.2s ease;
       margin-top: 0.5rem;
     }
+
     .google-btn:hover {
       background: var(--card-hover);
       border-color: var(--purple-primary);
@@ -41,12 +44,14 @@
     }
   </style>
 </head>
+
 <body>
   <div id="navbar-placeholder"></div>
 
   <div class="auth-container">
     <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎟️</div>
-    <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.4rem;">Mini ZooKeeper</h2>
+    <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.4rem;">Mini ZooKeeper
+    </h2>
     <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 2rem;">
       Distributed Concurrency-Protected Event Ticket Platform
     </p>
@@ -54,13 +59,16 @@
     <!-- Sign-in Form -->
     <form id="loginForm" onsubmit="handleManualLogin(event)">
       <div style="margin-bottom: 1.25rem; text-align: left;">
-        <label style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem; color: var(--text-muted); letter-spacing: 0.5px;">
+        <label
+          style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem; color: var(--text-muted); letter-spacing: 0.5px;">
           Google Account Email
         </label>
-        <input type="email" id="emailInput" required placeholder="your.name@gmail.com" class="form-control" style="width: 100%;">
+        <input type="email" id="emailInput" required placeholder="your.name@gmail.com" class="form-control"
+          style="width: 100%;">
       </div>
       <div style="margin-bottom: 1.5rem; text-align: left;">
-        <label style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem; color: var(--text-muted); letter-spacing: 0.5px;">
+        <label
+          style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem; color: var(--text-muted); letter-spacing: 0.5px;">
           Password
         </label>
         <input type="password" id="passwordInput" placeholder="••••••••" class="form-control" style="width: 100%;">
@@ -68,10 +76,14 @@
 
       <button type="submit" class="google-btn">
         <svg width="18" height="18" viewBox="0 0 18 18">
-          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/>
-          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
-          <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
-          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+          <path fill="#4285F4"
+            d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z" />
+          <path fill="#34A853"
+            d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" />
+          <path fill="#FBBC05"
+            d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z" />
+          <path fill="#EA4335"
+            d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" />
         </svg>
         <span>Sign In with Google</span>
       </button>
@@ -102,7 +114,13 @@
           setUserSession(data.user, data.access_token);
           showToast(`Welcome ${data.user.name}!`, "success");
           setTimeout(() => {
-            window.location.href = data.redirect_url;
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectParam = urlParams.get("redirect");
+            if (redirectParam) {
+              window.location.href = redirectParam;
+            } else {
+              window.location.href = data.redirect_url;
+            }
           }, 500);
         } else {
           showToast(data.detail || "Sign in failed.", "danger");
@@ -113,4 +131,5 @@
     }
   </script>
 </body>
+
 </html>

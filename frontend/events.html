@@ -434,6 +434,15 @@
     }
 
     async function handleBookSelectedSeats() {
+      const user = getUser();
+      if (!user) {
+        showToast("Please sign in to proceed with booking.", "warning");
+        setTimeout(() => {
+          window.location.href = `login.html?redirect=events.html`;
+        }, 600);
+        return;
+      }
+
       if (!activeEvent) return;
 
       // If no seats selected yet, auto-select first available green seat for effortless one-click booking
@@ -457,7 +466,7 @@
         const payload = {
           event_id: activeEvent.id,
           seat_ids: Array.from(selectedSeatIds),
-          user_id: user ? user.id : 1
+          user_id: user.id
         };
 
         const res = await authFetch("/api/bookings/reserve", {

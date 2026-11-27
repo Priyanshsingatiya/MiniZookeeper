@@ -794,14 +794,10 @@ if FASTAPI_AVAILABLE:
                 pass
 
         if not effective_user_id:
-            # Fall back to default customer user account
-            default_user = create_or_get_user(
-                db=db,
-                email="customer@example.com",
-                name="Alex Customer",
-                role="CUSTOMER"
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required. Please sign in to book tickets."
             )
-            effective_user_id = default_user.id
 
         # Step 1: Sort seat IDs to prevent deadlocks (e.g. User 1 picks A, B; User 2 picks B, A)
         sorted_seat_ids = sorted(payload.seat_ids)

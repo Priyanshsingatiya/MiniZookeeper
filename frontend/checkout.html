@@ -103,6 +103,14 @@
   <script>
     renderNavbar("bookings");
 
+    const currentUser = getUser();
+    if (!currentUser) {
+      showToast("Please sign in to proceed with checkout.", "warning");
+      setTimeout(() => {
+        window.location.href = `login.html?redirect=${encodeURIComponent(window.location.href)}`;
+      }, 500);
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const bookingId = parseInt(urlParams.get("booking_id"), 10);
     let timerSeconds = 300;
@@ -164,6 +172,13 @@
     }
 
     async function handleProcessPayment() {
+      const user = getUser();
+      if (!user) {
+        showToast("Please sign in to complete payment.", "warning");
+        window.location.href = "login.html";
+        return;
+      }
+
       const payBtn = document.getElementById("payBtn");
       payBtn.disabled = true;
       payBtn.innerText = "⏳ Verifying Payment & Locking Seats Permanently...";
