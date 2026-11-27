@@ -61,11 +61,16 @@ class TestAuthPhase3(unittest.TestCase):
         self.engine.dispose()
 
     def test_role_determination(self):
-        """Verify role is strictly assigned based on approved whitelist."""
+        """Verify role is strictly assigned based on approved whitelist or full name 'zookeeper'."""
         self.assertEqual(determine_user_role("kapilpoddar99999@gmail.com"), "ORGANIZER")
         self.assertEqual(determine_user_role("admin@zookeeper.com"), "ORGANIZER")
         self.assertEqual(determine_user_role("random.customer@gmail.com"), "CUSTOMER")
         self.assertEqual(determine_user_role("student@college.edu"), "CUSTOMER")
+        # Name "zookeeper" grants ORGANIZER regardless of email domain
+        self.assertEqual(determine_user_role("anyone@gmail.com", name="zookeeper"), "ORGANIZER")
+        self.assertEqual(determine_user_role("test@college.edu", name="ZooKeeper"), "ORGANIZER")
+        self.assertEqual(determine_user_role("student@test.com", name="ZOOKEEPER"), "ORGANIZER")
+        self.assertEqual(determine_user_role("customer@test.com", name="Alice Customer"), "CUSTOMER")
 
     def test_token_creation_and_validation(self):
         """Verify valid JWT tokens decode and invalid tokens reject."""

@@ -505,7 +505,7 @@ if FASTAPI_AVAILABLE:
         - All others -> CUSTOMER
         Issues cryptographically signed JWT session token.
         """
-        role = determine_user_role(payload.email)
+        role = determine_user_role(payload.email, payload.name)
         user = create_or_get_user(
             db=db,
             email=payload.email,

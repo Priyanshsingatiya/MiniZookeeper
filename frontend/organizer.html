@@ -111,21 +111,21 @@
   <div id="navbar-placeholder"></div>
 
   <!-- =====================================================================
-       ACCESS DENIED NOTICE (Shown if a normal customer opens this page)
+       ACCESS DENIED / SIGN IN NOTICE (Shown if customer or guest opens this page)
        ===================================================================== -->
   <div id="accessDeniedNotice" style="display: none; max-width: 580px; margin: 6rem auto; text-align: center; padding: 3rem 2rem; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
     <div style="font-size: 3.5rem; margin-bottom: 1rem;">🔒</div>
-    <h2 style="font-size: 1.75rem; font-weight: 900; color: var(--text-primary); margin-bottom: 0.6rem;">Access Denied</h2>
-    <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 2rem; line-height: 1.5;">
-      The <strong>Host & Admin Dashboard</strong> is restricted to approved organizer accounts only.<br>
-      You are currently signed in as a <strong>Customer</strong> (<span id="deniedUserEmail" style="color: var(--text-primary); font-weight: 700;"></span>).
+    <h2 id="deniedTitle" style="font-size: 1.75rem; font-weight: 900; color: var(--text-primary); margin-bottom: 0.6rem;">Sign In Required</h2>
+    <p id="deniedDesc" style="font-size: 1rem; color: var(--text-muted); margin-bottom: 2rem; line-height: 1.5;">
+      The <strong>Host & Admin Dashboard</strong> is restricted to approved organizer accounts.<br>
+      Please sign in with full name <strong>"zookeeper"</strong> to access the Host Dashboard.
     </p>
-    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-      <a href="events.html" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
-        ← Browse Events Catalog
+    <div id="deniedActions" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+      <a href="login.html" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
+        🔑 Sign In (Name: "zookeeper")
       </a>
-      <a href="login.html" class="btn btn-secondary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
-        Switch to Organizer Role
+      <a href="events.html" class="btn btn-secondary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
+        ← Browse Events Catalog
       </a>
     </div>
   </div>
@@ -412,7 +412,30 @@
     // -----------------------------------------------------------------------
     const currentUser = getUser();
     if (!currentUser || currentUser.role !== "ORGANIZER") {
-      document.getElementById("deniedUserEmail").innerText = currentUser ? currentUser.email : "Not signed in";
+      const isCustomer = currentUser && currentUser.role === "CUSTOMER";
+      if (isCustomer) {
+        document.getElementById("deniedTitle").innerText = "Access Denied";
+        document.getElementById("deniedDesc").innerHTML = `The <strong>Host & Admin Dashboard</strong> is restricted to approved organizers only.<br>You are currently signed in as a <strong>Customer</strong> (<span style="color: var(--text-primary); font-weight: 700;">${escapeHtml(currentUser.email)}</span>).`;
+        document.getElementById("deniedActions").innerHTML = `
+          <button onclick="switchToOrganizer()" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
+            👑 Switch to Host Role (Name: "zookeeper")
+          </button>
+          <a href="events.html" class="btn btn-secondary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
+            ← Browse Events Catalog
+          </a>
+        `;
+      } else {
+        document.getElementById("deniedTitle").innerText = "Sign In Required";
+        document.getElementById("deniedDesc").innerHTML = `The <strong>Host & Admin Dashboard</strong> is restricted to host accounts.<br>Please sign in (use full name <strong>"zookeeper"</strong> to access the Host Dashboard).`;
+        document.getElementById("deniedActions").innerHTML = `
+          <a href="login.html" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
+            🔑 Sign In (Name: "zookeeper")
+          </a>
+          <a href="events.html" class="btn btn-secondary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800;">
+            ← Browse Events Catalog
+          </a>
+        `;
+      }
       document.getElementById("accessDeniedNotice").style.display = "block";
       document.getElementById("organizerMainContent").style.display = "none";
     } else {
