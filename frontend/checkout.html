@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +16,7 @@
       box-shadow: var(--shadow-md);
       padding: 2rem;
     }
+
     .payment-option-card {
       background: var(--card-inner);
       border: 1px solid var(--border-color);
@@ -27,6 +29,7 @@
       gap: 1rem;
       transition: all 0.2s ease;
     }
+
     .payment-option-card.selected {
       border-color: var(--purple-primary);
       background: var(--purple-subtle);
@@ -34,14 +37,17 @@
     }
   </style>
 </head>
+
 <body>
   <div id="navbar-placeholder"></div>
 
   <div class="checkout-container">
     <!-- Hold Timer Countdown Banner -->
-    <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35); border-left: 4px solid #f59e0b; border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+    <div
+      style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35); border-left: 4px solid #f59e0b; border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
       <div>
-        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #fbbf24; letter-spacing: 0.5px;">
+        <div
+          style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #fbbf24; letter-spacing: 0.5px;">
           ⏱️ Temporary Seat Hold Active
         </div>
         <div style="font-size: 0.85rem; color: #fde68a;">
@@ -58,7 +64,8 @@
     </h1>
 
     <!-- Order Summary Details -->
-    <div style="background: var(--card-inner); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+    <div
+      style="background: var(--card-inner); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
       <div style="display: flex; justify-content: space-between; margin-bottom: 0.6rem; font-size: 0.9rem;">
         <span style="color: var(--text-muted);">Event:</span>
         <strong id="summaryEventTitle" style="color: var(--text-primary);">Loading...</strong>
@@ -80,21 +87,25 @@
 
     <!-- Payment Methods -->
     <div style="margin-bottom: 1.5rem;">
-      <h3 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.75rem; color: var(--text-muted); letter-spacing: 0.5px;">
+      <h3
+        style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.75rem; color: var(--text-muted); letter-spacing: 0.5px;">
         Payment Method
       </h3>
 
       <div class="payment-option-card selected" onclick="selectPaymentMethod(this)">
         <input type="radio" name="payMethod" checked style="accent-color: var(--purple-primary);">
         <div>
-          <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">Instant Card & UPI Settlement</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">Simulates instant verified payment gateway response</div>
+          <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">Instant Card & UPI Settlement
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">Simulates instant verified payment gateway response
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Pay Button -->
-    <button id="payBtn" onclick="handleProcessPayment()" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1.05rem; font-weight: 800;">
+    <button id="payBtn" onclick="handleProcessPayment()" class="btn btn-primary"
+      style="width: 100%; padding: 0.85rem; font-size: 1.05rem; font-weight: 800;">
       💳 Confirm Payment & Issue Ticket
     </button>
   </div>
@@ -216,4 +227,5 @@
     loadBookingDetails();
   </script>
 </body>
+
 </html>

@@ -477,16 +477,37 @@ if FASTAPI_AVAILABLE:
 
     # Initialize Database Tables & Auto-Seed Sample Events
     @app.on_event("startup")
-    def on_startup():
+    async def on_startup():
+        import asyncio
         try:
             init_db()
             db = SessionLocal()
             try:
                 seed_sample_events(db)
+                release_expired_reservations(db)
             finally:
                 db.close()
         except Exception as e:
             print(f"Warning during startup initialization: {e}")
+
+        # Start automatic background cleaner: releases expired seats every 5 seconds
+        async def periodic_cleanup():
+            while True:
+                try:
+                    await asyncio.sleep(5)
+                    def _clean():
+                        db = SessionLocal()
+                        try:
+                            release_expired_reservations(db)
+                        finally:
+                            db.close()
+                    await asyncio.to_thread(_clean)
+                except asyncio.CancelledError:
+                    break
+                except Exception:
+                    pass
+
+        asyncio.create_task(periodic_cleanup())
 
     try:
         init_db()
@@ -621,6 +642,7 @@ if FASTAPI_AVAILABLE:
         If status is None, returns PUBLISHED events by default.
         If status is 'ALL', returns all events regardless of status.
         """
+        release_expired_reservations(db)
         query = db.query(Event)
         if status and status.upper() != "ALL":
             query = query.filter(Event.status == status.upper())
@@ -632,6 +654,7 @@ if FASTAPI_AVAILABLE:
     @app.get("/api/events/{event_id}")
     def endpoint_get_event(event_id: int, db: Session = Depends(get_db)):
         """Gets full event details with real-time seat availability counts."""
+        release_expired_reservations(db)
         event_data = get_event_with_seat_counts(db, event_id)
         if not event_data:
             raise HTTPException(status_code=404, detail="Event not found.")
@@ -740,6 +763,7 @@ if FASTAPI_AVAILABLE:
     @app.get("/api/events/{event_id}/seats")
     def endpoint_get_event_seats(event_id: int, db: Session = Depends(get_db)):
         """Gets the seat layout grid for an event (AVAILABLE, RESERVED, SOLD)."""
+        release_expired_reservations(db)
         event = db.query(Event).filter(Event.id == event_id).first()
         if not event:
             raise HTTPException(status_code=404, detail="Event not found.")
@@ -782,6 +806,9 @@ if FASTAPI_AVAILABLE:
            (We hold the OS lock for only ~15ms, not 5 minutes).
         """
         import uuid
+
+        # Clean expired reservations first so newly freed seats can be booked
+        release_expired_reservations(db)
 
         # Resolve effective user ID
         effective_user_id = payload.user_id

@@ -136,6 +136,19 @@
       }
     }
 
+    // Refresh seat availability every 3 seconds to release expired locks in real time
+    setInterval(async () => {
+      if (eventId && !document.hidden) {
+        try {
+          const seatsRes = await fetch(`/api/events/${eventId}/seats`);
+          if (seatsRes.ok) {
+            const seats = await seatsRes.json();
+            renderSeats(seats);
+          }
+        } catch (e) {}
+      }
+    }, 3000);
+
     function renderSeats(seats) {
       const container = document.getElementById("seatingGridContainer");
       seatDataMap.clear();

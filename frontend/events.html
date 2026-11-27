@@ -418,6 +418,54 @@
       updateFloatingPrice();
     }
 
+    /**
+     * Silently polls live seat status every 3 seconds.
+     * When 5-minute reservations expire, their amber locked dots automatically turn green in real time!
+     */
+    async function refreshSeatsSilently(eventId) {
+      try {
+        const res = await fetch(`/api/events/${eventId}/seats`);
+        if (!res.ok) return;
+        const freshSeats = await res.json();
+        eventSeats = freshSeats;
+
+        freshSeats.forEach(s => {
+          seatObjectMap.set(s.id, s);
+          const el = document.getElementById(`seat-dot-${s.id}`);
+          if (!el) return;
+
+          if (selectedSeatIds.has(s.id)) {
+            el.className = "seat-dot selected";
+          } else if (s.status === "SOLD") {
+            el.className = "seat-dot booked";
+          } else if (s.status === "RESERVED") {
+            el.className = "seat-dot locked";
+          } else {
+            el.className = "seat-dot open";
+          }
+          const tooltip = `Seat ${s.seat_number} - ${s.status === 'SOLD' ? 'Booked' : s.status === 'RESERVED' ? 'Locked (5-min hold)' : 'Open'}`;
+          el.title = tooltip;
+          el.onclick = () => toggleSeatSelection(s.id, s.status);
+        });
+
+        // Update available seats counter on active timeline card
+        const availCount = freshSeats.filter(s => s.status === "AVAILABLE").length;
+        const cardAvailEl = document.querySelector(`#timeline-item-${eventId} .timeline-avail-label`);
+        if (cardAvailEl) {
+          cardAvailEl.innerText = `${availCount} SEATS AVAILABLE`;
+        }
+      } catch (e) {
+        // Silent fail on background poll
+      }
+    }
+
+    // Live sync seat status every 3 seconds to keep expired and released seats instantly updated
+    setInterval(() => {
+      if (activeEvent && !document.hidden) {
+        refreshSeatsSilently(activeEvent.id);
+      }
+    }, 3000);
+
     function updateFloatingPrice() {
       if (!activeEvent) return;
       const count = selectedSeatIds.size;

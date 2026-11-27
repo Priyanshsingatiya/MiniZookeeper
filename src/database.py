@@ -481,7 +481,25 @@ def release_expired_reservations(db: Session) -> int:
             freed_count += 1
         bs.booking.booking_status = "EXPIRED"
 
-    if freed_count > 0:
+    # Also safety-check any orphaned RESERVED seats with no active pending hold
+    active_holds = (
+        db.query(BookingSeat.seat_id)
+        .join(Booking)
+        .filter(Booking.booking_status == "PENDING", BookingSeat.reserved_until >= now)
+        .all()
+    )
+    active_seat_ids = {row[0] for row in active_holds}
+    orphaned_reserved_seats = (
+        db.query(Seat)
+        .filter(Seat.status == "RESERVED")
+        .all()
+    )
+    for s in orphaned_reserved_seats:
+        if s.id not in active_seat_ids:
+            s.status = "AVAILABLE"
+            freed_count += 1
+
+    if freed_count > 0 or expired_booking_seats:
         db.commit()
 
     return freed_count
