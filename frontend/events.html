@@ -3,68 +3,131 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Events - Mini ZooKeeper</title>
+  <title>Interactive Seat Booking - Mini ZooKeeper</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/booking-common.js"></script>
 </head>
 <body>
   <div id="navbar-placeholder"></div>
 
-  <div class="container" style="max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem;">
-    <!-- Hero Banner -->
-    <div style="background: linear-gradient(135deg, #151726 0%, #1a1d30 100%); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 2.25rem 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-md);">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-        <div>
-          <h1 style="font-size: 1.85rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">
-            🎟️ Live Events & Pass Reservations
-          </h1>
-          <p style="font-size: 0.95rem; color: var(--text-muted); max-width: 650px;">
-            Reserve seats with kernel-level distributed lock protection. Guaranteed zero double-booking under high-concurrency traffic.
-          </p>
-        </div>
-        <div id="organizerQuickAction" style="display: none;">
-          <a href="organizer.html" class="btn btn-primary">
-            + Create New Event
-          </a>
-        </div>
-      </div>
-    </div>
+  <div class="container" style="max-width: 1440px; margin: 1.5rem auto; padding: 0 1.5rem;">
+    <!-- Two-Column Master-Detail Split Layout -->
+    <div class="events-split-layout">
+      
+      <!-- ===================================================================
+           LEFT COLUMN: Vertical Event Timeline & Selection Feed
+           =================================================================== -->
+      <div class="timeline-column">
+        <!-- Vertical timeline track line -->
+        <div class="timeline-track-line"></div>
 
-    <!-- Filter & Search Bar -->
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
-      <div style="display: flex; gap: 0.75rem; align-items: center;">
-        <input type="text" id="searchInput" placeholder="Search events by title or venue..." onkeyup="filterEvents()" class="form-control" style="width: 320px;">
-        <span id="eventsCountBadge" class="badge badge-purple" style="padding: 0.4rem 0.8rem;">
-          Loading events...
-        </span>
+        <!-- Dynamic Event Timeline Feed -->
+        <div id="eventsTimelineFeed">
+          <div class="state-box" style="padding: 2rem 1rem;">
+            <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⏳</div>
+            <div>Loading live events...</div>
+          </div>
+        </div>
       </div>
-      <div>
-        <button onclick="fetchEvents()" class="btn btn-sm btn-secondary">
-          🔄 Refresh Catalog
-        </button>
-      </div>
-    </div>
 
-    <!-- Events Grid Container -->
-    <div id="eventsGrid" class="events-grid">
-      <div class="state-box" style="grid-column: 1 / -1;">
-        <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⏳</div>
-        <div>Loading live events...</div>
+      <!-- ===================================================================
+           RIGHT COLUMN: Interactive Amphitheater Seating Arena
+           =================================================================== -->
+      <div class="seating-arena-panel">
+        <!-- Header: Title, Legend, and Engine Status -->
+        <div class="seating-arena-header">
+          <div class="seating-arena-title-group">
+            <h1 class="seating-arena-title">Interactive Seat Booking</h1>
+            <div class="seating-legend-inline">
+              <div class="legend-dot-item">
+                <span class="legend-circle open"></span>
+                <span>Open (Green)</span>
+              </div>
+              <div class="legend-dot-item">
+                <span class="legend-circle locked"></span>
+                <span>Locked/In-Progress (Amber)</span>
+              </div>
+              <div class="legend-dot-item">
+                <span class="legend-circle booked"></span>
+                <span>Booked (Crimson)</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="lock-status-badge">
+              <span class="lock-pulse-dot"></span>
+              <span>Lock Engine Connected</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Amphitheater Bowl: Architectural Balcony Wings, Stage, & Seating Rows -->
+        <div class="amphitheater-bowl">
+          <!-- Outer Architectural Tiered Curved Balcony Wings -->
+          <svg class="amphi-wings-svg" viewBox="0 0 760 480">
+            <!-- Left curved balcony tiers -->
+            <path class="amphi-wing-path" d="M 120 120 C 60 180, 50 300, 110 400" />
+            <path class="amphi-wing-path" d="M 100 140 C 40 200, 30 320, 90 410" />
+            <path class="amphi-wing-path" d="M 140 110 C 80 170, 70 280, 130 390" />
+            <!-- Left architectural box dividers -->
+            <line x1="75" y1="180" x2="115" y2="160" class="amphi-wing-path" />
+            <line x1="45" y1="260" x2="90" y2="250" class="amphi-wing-path" />
+            <line x1="55" y1="340" x2="100" y2="330" class="amphi-wing-path" />
+
+            <!-- Right curved balcony tiers -->
+            <path class="amphi-wing-path" d="M 640 120 C 700 180, 710 300, 650 400" />
+            <path class="amphi-wing-path" d="M 660 140 C 720 200, 730 320, 670 410" />
+            <path class="amphi-wing-path" d="M 620 110 C 680 170, 690 280, 630 390" />
+            <!-- Right architectural box dividers -->
+            <line x1="685" y1="180" x2="645" y2="160" class="amphi-wing-path" />
+            <line x1="715" y1="260" x2="670" y2="250" class="amphi-wing-path" />
+            <line x1="705" y1="340" x2="660" y2="330" class="amphi-wing-path" />
+          </svg>
+
+          <!-- Stage Element -->
+          <div class="arena-stage-box">
+            STAGE
+          </div>
+
+          <!-- Central Seating Layout Rows -->
+          <div id="arenaSeatingGrid" class="arena-seating-container">
+            <div class="state-box" style="padding: 2rem;">Loading seat layout...</div>
+          </div>
+        </div>
+
+        <!-- Floating Bottom-Right Booking Summary Card -->
+        <div id="floatingBookingCard" class="floating-booking-card" style="display: none;">
+          <img id="floatingThumb" src="" alt="Event Poster" class="floating-event-thumb" onerror="this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800'">
+          <div class="floating-event-info">
+            <div id="floatingTitle" class="floating-event-title">Google Developer Conference 2026</div>
+            <div id="floatingVenue" class="floating-event-venue">Moscone Center West, San Francisco</div>
+          </div>
+          <div class="floating-booking-actions">
+            <div id="floatingPrice" class="floating-price">$299.00</div>
+            <button id="floatingBookBtn" onclick="handleBookSelectedSeats()" class="floating-book-btn">
+              Book Selected Seats ➔
+            </button>
+          </div>
+        </div>
+
       </div>
+
     </div>
   </div>
 
-  <script src="js/booking-common.js"></script>
   <script>
     renderNavbar("events");
 
     let allEvents = [];
+    let activeEvent = null;
+    let eventSeats = [];
+    let selectedSeatIds = new Set();
 
-    const user = getUser();
-    if (user && user.role === "ORGANIZER") {
-      document.getElementById("organizerQuickAction").style.display = "block";
-    }
+    // Months lookup for timeline badge
+    const MONTH_NAMES = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
-    async function fetchEvents() {
+    async function loadEventsData() {
       try {
         const res = await fetch("/api/events?status=PUBLISHED");
         if (!res.ok) throw new Error("Failed to load events");
@@ -76,65 +139,60 @@
           allEvents = seedData.events || [];
         }
 
-        renderEvents(allEvents);
+        renderTimeline(allEvents);
+
+        // Check if query parameter specifies an event ID, or default to first event
+        const urlParams = new URLSearchParams(window.location.search);
+        const reqId = parseInt(urlParams.get("id"), 10);
+        const initialEvent = allEvents.find(e => e.id === reqId) || allEvents[0];
+
+        if (initialEvent) {
+          selectEvent(initialEvent.id);
+        }
       } catch (err) {
-        document.getElementById("eventsGrid").innerHTML = `
-          <div class="state-box" style="grid-column: 1 / -1; color: #ef4444;">
-            <p>Error loading events: ${err.message}</p>
-            <button onclick="fetchEvents()" class="btn btn-primary" style="margin-top: 1rem;">Retry</button>
+        document.getElementById("eventsTimelineFeed").innerHTML = `
+          <div class="state-box" style="color: #ef4444;">
+            <p>Error loading events: ${escapeHtml(err.message)}</p>
+            <button onclick="loadEventsData()" class="btn btn-sm btn-primary" style="margin-top: 1rem;">Retry</button>
           </div>
         `;
       }
     }
 
-    function renderEvents(events) {
-      const grid = document.getElementById("eventsGrid");
-      document.getElementById("eventsCountBadge").innerText = `${events.length} Events Available`;
-
+    function renderTimeline(events) {
+      const container = document.getElementById("eventsTimelineFeed");
       if (events.length === 0) {
-        grid.innerHTML = `
-          <div class="state-box" style="grid-column: 1 / -1;">
-            <p>No published events found at this time.</p>
-          </div>
-        `;
+        container.innerHTML = `<div class="state-box"><p>No published events available.</p></div>`;
         return;
       }
 
-      grid.innerHTML = events.map(e => {
+      container.innerHTML = events.map((e, idx) => {
+        const dateObj = new Date(e.event_date || Date.now());
+        const monthStr = isNaN(dateObj.getTime()) ? "DEC" : MONTH_NAMES[dateObj.getMonth()];
+        const dayStr = isNaN(dateObj.getTime()) ? (11 + idx * 7) : dateObj.getDate();
         const posterUrl = e.poster || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=80";
-        const availableSeats = e.available_seats !== undefined ? e.available_seats : e.total_seats;
-        const isSoldOut = availableSeats <= 0;
+        const availSeats = e.available_seats !== undefined ? e.available_seats : e.total_seats;
 
         return `
-          <div class="event-card">
-            <img src="${posterUrl}" alt="${escapeHtml(e.title)}" class="event-poster" onerror="this.src='https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800'">
-            <div class="event-card-body">
-              <div class="event-meta">
-                <span>📅 ${formatDate(e.event_date)}</span>
-              </div>
-              <h3 class="event-title">${escapeHtml(e.title)}</h3>
-              <div class="event-meta" style="margin-bottom: 0.75rem;">
-                <span>📍 ${escapeHtml(e.venue)}</span>
-              </div>
-              <p class="event-desc">${escapeHtml(e.description || "Join us for this exciting live event experience.")}</p>
-
-              <div style="margin-bottom: 1rem;">
-                <span class="badge ${isSoldOut ? 'badge-red' : 'badge-green'}">
-                  ${isSoldOut ? 'Sold Out' : `${availableSeats} Seats Available`}
-                </span>
-                <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.5rem;">
-                  (Total: ${e.total_seats})
-                </span>
-              </div>
-
-              <div class="event-footer">
-                <div>
-                  <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Ticket Price</div>
-                  <div class="event-price">$${parseFloat(e.ticket_price).toFixed(2)}</div>
+          <div id="timeline-item-${e.id}" class="timeline-item ${activeEvent && activeEvent.id === e.id ? 'active' : ''}" onclick="selectEvent(${e.id})">
+            <div class="timeline-date-badge">
+              <span class="month">${monthStr}</span>
+              <span class="day">${dayStr}</span>
+            </div>
+            <div class="timeline-card">
+              <div class="timeline-card-header">
+                <img src="${posterUrl}" alt="${escapeHtml(e.title)}" class="timeline-card-poster" onerror="this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800'">
+                <div class="timeline-card-info">
+                  <div class="timeline-card-title">${escapeHtml(e.title)}</div>
+                  <div class="timeline-card-venue">${escapeHtml(e.venue)}</div>
                 </div>
-                <a href="event-details.html?id=${e.id}" class="btn btn-sm ${isSoldOut ? 'btn-secondary' : 'btn-primary'}">
-                  ${isSoldOut ? 'View Layout' : 'Book Seats →'}
-                </a>
+              </div>
+              <div class="timeline-card-badges">
+                <div class="timeline-avail-label">${availSeats} SEATS AVAILABLE</div>
+                <div class="timeline-locks-pill">
+                  <span>🔒</span>
+                  <span>Active Locks: 2</span>
+                </div>
               </div>
             </div>
           </div>
@@ -142,16 +200,196 @@
       }).join("");
     }
 
-    function filterEvents() {
-      const q = document.getElementById("searchInput").value.toLowerCase();
-      const filtered = allEvents.filter(e =>
-        e.title.toLowerCase().includes(q) ||
-        (e.venue && e.venue.toLowerCase().includes(q))
-      );
-      renderEvents(filtered);
+    async function selectEvent(eventId) {
+      activeEvent = allEvents.find(e => e.id === eventId);
+      if (!activeEvent) return;
+
+      // Update active styling in timeline
+      document.querySelectorAll(".timeline-item").forEach(item => item.classList.remove("active"));
+      const activeEl = document.getElementById(`timeline-item-${eventId}`);
+      if (activeEl) activeEl.classList.add("active");
+
+      // Reset selected seats for newly activated event
+      selectedSeatIds.clear();
+
+      // Update floating booking card
+      const floatingCard = document.getElementById("floatingBookingCard");
+      floatingCard.style.display = "flex";
+      document.getElementById("floatingThumb").src = activeEvent.poster || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800";
+      document.getElementById("floatingTitle").innerText = activeEvent.title;
+      document.getElementById("floatingVenue").innerText = activeEvent.venue;
+      updateFloatingPrice();
+
+      // Fetch and render seats for this event
+      await loadSeatsForEvent(activeEvent.id);
     }
 
-    fetchEvents();
+    async function loadSeatsForEvent(eventId) {
+      const grid = document.getElementById("arenaSeatingGrid");
+      grid.innerHTML = `<div class="state-box" style="padding: 2rem;">Loading seat layout...</div>`;
+
+      try {
+        const res = await fetch(`/api/events/${eventId}/seats`);
+        if (!res.ok) throw new Error("Failed to load seats");
+        eventSeats = await res.json();
+        renderArenaSeats(eventSeats);
+      } catch (err) {
+        grid.innerHTML = `<div class="state-box" style="color: #ef4444;"><p>Error: ${escapeHtml(err.message)}</p></div>`;
+      }
+    }
+
+    function renderArenaSeats(seats) {
+      const grid = document.getElementById("arenaSeatingGrid");
+      if (!seats || seats.length === 0) {
+        grid.innerHTML = `<div class="state-box"><p>No seats configured for this event.</p></div>`;
+        return;
+      }
+
+      // Group seats into 10 rows (e.g. 10 seats per row)
+      const rowsCount = 10;
+      const seatsPerRow = Math.ceil(seats.length / rowsCount) || 10;
+      let rowsHtml = "";
+
+      for (let r = 0; r < rowsCount; r++) {
+        const rowNumber = r + 1;
+        const rowSeats = seats.slice(r * seatsPerRow, (r + 1) * seatsPerRow);
+        if (rowSeats.length === 0) continue;
+
+        let seatsDotsHtml = rowSeats.map(s => {
+          const isSelected = selectedSeatIds.has(s.id);
+          let statusClass = "open";
+          if (isSelected) {
+            statusClass = "selected";
+          } else if (s.status === "SOLD") {
+            statusClass = "booked";
+          } else if (s.status === "RESERVED") {
+            statusClass = "locked";
+          }
+
+          const tooltip = `Seat ${s.seat_number} - ${s.status === 'SOLD' ? 'Booked' : s.status === 'RESERVED' ? 'Locked (Holding)' : 'Open'}`;
+
+          return `
+            <div 
+              id="seat-dot-${s.id}" 
+              class="seat-dot ${statusClass}" 
+              title="${tooltip}"
+              onclick="toggleSeatSelection(${s.id}, '${s.status}')">
+            </div>
+          `;
+        }).join("");
+
+        rowsHtml += `
+          <div class="seat-row">
+            <span class="row-num">${rowNumber}</span>
+            <div class="row-seats-track">${seatsDotsHtml}</div>
+            <span class="row-num">${rowNumber}</span>
+          </div>
+        `;
+      }
+
+      grid.innerHTML = rowsHtml;
+    }
+
+    function toggleSeatSelection(seatId, currentStatus) {
+      if (currentStatus === "SOLD") {
+        showToast("This seat is already booked.", "warning");
+        return;
+      }
+      if (currentStatus === "RESERVED" && !selectedSeatIds.has(seatId)) {
+        showToast("Seat is currently locked under reservation.", "warning");
+        return;
+      }
+
+      if (selectedSeatIds.has(seatId)) {
+        selectedSeatIds.delete(seatId);
+      } else {
+        selectedSeatIds.add(seatId);
+      }
+
+      // Re-render seat classes
+      eventSeats.forEach(s => {
+        const el = document.getElementById(`seat-dot-${s.id}`);
+        if (!el) return;
+        el.className = "seat-dot";
+        if (selectedSeatIds.has(s.id)) {
+          el.classList.add("selected");
+        } else if (s.status === "SOLD") {
+          el.classList.add("booked");
+        } else if (s.status === "RESERVED") {
+          el.classList.add("locked");
+        } else {
+          el.classList.add("open");
+        }
+      });
+
+      updateFloatingPrice();
+    }
+
+    function updateFloatingPrice() {
+      if (!activeEvent) return;
+      const count = selectedSeatIds.size;
+      const unitPrice = parseFloat(activeEvent.ticket_price) || 299.00;
+      const total = count > 0 ? (unitPrice * count) : unitPrice;
+
+      document.getElementById("floatingPrice").innerText = `$${total.toFixed(2)}`;
+      const bookBtn = document.getElementById("floatingBookBtn");
+      if (count > 0) {
+        bookBtn.innerText = `Book ${count} Selected Seat${count > 1 ? 's' : ''} ➔`;
+      } else {
+        bookBtn.innerText = `Book Selected Seats ➔`;
+      }
+    }
+
+    async function handleBookSelectedSeats() {
+      if (!activeEvent) return;
+
+      // If no seats selected, auto-select first available seat for effortless one-click booking
+      if (selectedSeatIds.size === 0) {
+        const firstAvail = eventSeats.find(s => s.status === "AVAILABLE");
+        if (firstAvail) {
+          selectedSeatIds.add(firstAvail.id);
+          toggleSeatSelection(firstAvail.id, firstAvail.status);
+        } else {
+          showToast("No available seats left for this event.", "danger");
+          return;
+        }
+      }
+
+      const bookBtn = document.getElementById("floatingBookBtn");
+      bookBtn.disabled = true;
+      bookBtn.innerText = "Locking with Mini ZooKeeper...";
+
+      try {
+        const payload = {
+          event_id: activeEvent.id,
+          seat_ids: Array.from(selectedSeatIds)
+        };
+
+        const res = await authFetch("/api/bookings/reserve", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || "Lock acquisition failed. Seat is busy.");
+        }
+
+        showToast("Seats locked! Proceeding to checkout...", "success");
+        setTimeout(() => {
+          window.location.href = `checkout.html?booking_id=${data.id}`;
+        }, 600);
+      } catch (err) {
+        showToast(err.message, "danger");
+        bookBtn.disabled = false;
+        updateFloatingPrice();
+        // Refresh seats in case status changed
+        loadSeatsForEvent(activeEvent.id);
+      }
+    }
+
+    // Initialize on page load
+    loadEventsData();
   </script>
 </body>
 </html>

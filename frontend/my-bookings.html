@@ -15,7 +15,7 @@
       background: var(--bg-primary);
       border-radius: 50%;
       right: 175px;
-      border: 1px solid #282b3f;
+      border: 1px solid var(--border-color);
       z-index: 2;
     }
     .ticket-card::before {
@@ -38,7 +38,7 @@
       }
       .ticket-aside {
         border-left: none;
-        border-top: 2px dashed #282b3f;
+        border-top: 2px dashed var(--border-color);
         padding-left: 0;
         padding-top: 1.5rem;
       }
@@ -63,13 +63,13 @@
       display: flex;
     }
     .modal-card {
-      background: #161826;
+      background: var(--card-bg);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
       max-width: 480px;
       width: 100%;
       padding: 2rem;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      box-shadow: var(--shadow-md);
       text-align: center;
     }
   </style>
@@ -109,7 +109,7 @@
   <div id="receiptModal" class="modal-overlay">
     <div class="modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
-        <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff;">Digital Pass & Receipt</h3>
+        <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary);">Digital Pass & Receipt</h3>
         <button onclick="closeReceiptModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
       </div>
 
@@ -260,7 +260,7 @@
         <div style="text-align: left; background: var(--card-inner); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
             <span style="color: var(--text-muted);">Event:</span>
-            <strong style="color: #fff;">${escapeHtml(b.event_title)}</strong>
+            <strong style="color: var(--text-primary);">${escapeHtml(b.event_title)}</strong>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
             <span style="color: var(--text-muted);">Allocated Seat:</span>

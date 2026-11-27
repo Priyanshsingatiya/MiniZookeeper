@@ -7,6 +7,38 @@
 const API_BASE = "";
 
 // --------------------------------------------------------------------------
+// Theme State Management (Dark Mode & Warm Orange/Beige Light Mode)
+// --------------------------------------------------------------------------
+function getTheme() {
+  return localStorage.getItem("minizoo_theme") || "dark";
+}
+
+function initTheme() {
+  const theme = getTheme();
+  document.documentElement.setAttribute("data-theme", theme);
+  return theme;
+}
+
+function toggleTheme() {
+  const current = getTheme();
+  const nextTheme = current === "light" ? "dark" : "light";
+  localStorage.setItem("minizoo_theme", nextTheme);
+  document.documentElement.setAttribute("data-theme", nextTheme);
+
+  // Update button icon & text if navbar is rendered
+  const iconSpan = document.getElementById("themeToggleIcon");
+  const textSpan = document.getElementById("themeToggleText");
+  if (iconSpan) iconSpan.innerText = nextTheme === "light" ? "🌙" : "☀️";
+  if (textSpan) textSpan.innerText = nextTheme === "light" ? "Dark Theme" : "Orange & Beige";
+
+  // Notify page specific listeners (e.g., canvas redraw on organizer page)
+  window.dispatchEvent(new CustomEvent("themechanged", { detail: { theme: nextTheme } }));
+}
+
+// Apply theme as early as possible
+initTheme();
+
+// --------------------------------------------------------------------------
 // Auth State Management
 // --------------------------------------------------------------------------
 function getUser() {
@@ -66,10 +98,12 @@ function renderNavbar(activePage = "") {
   const placeholder = document.getElementById("navbar-placeholder");
   if (!placeholder) return;
 
+  const currentTheme = getTheme();
   const user = getUser();
   const isOrganizer = user && user.role === "ORGANIZER";
   const displayName = user ? (user.name.split(" ")[0] || "User") : "Sign In";
   const displayRole = isOrganizer ? "(Approved Organizer)" : "(Customer)";
+  const roleBadge = isOrganizer ? "ORGANIZER" : "CUSTOMER";
 
   placeholder.innerHTML = `
     <header class="navbar">
@@ -86,27 +120,45 @@ function renderNavbar(activePage = "") {
           <a href="organizer.html" class="nav-link ${activePage === 'telemetry' || activePage === 'organizer' ? 'active' : ''}">Telemetry</a>
         </nav>
 
-        <!-- Right User Widget -->
-        <div style="position: relative;">
-          <div class="nav-user" onclick="toggleUserDropdown(event)">
-            <div class="user-avatar">${displayName.charAt(0).toUpperCase()}</div>
-            <div class="user-details">
-              <span class="user-name">${escapeHtml(displayName)}</span>
-              <span class="user-role-tag">${displayRole}</span>
-            </div>
-            <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 2px;">▾</span>
-          </div>
+        <!-- Right Controls: Theme Toggle & User Account -->
+        <div class="nav-right-actions" style="display: flex; align-items: center; gap: 0.85rem;">
+          <!-- Light/Dark Theme Switcher (Orange & Beige Contrast) -->
+          <button id="themeToggleBtn" onclick="toggleTheme()" class="theme-toggle-btn" title="Toggle between Dark and Orange & Beige Light theme">
+            <span id="themeToggleIcon">${currentTheme === 'light' ? '🌙' : '☀️'}</span>
+            <span id="themeToggleText">${currentTheme === 'light' ? 'Dark Mode' : 'Orange & Beige'}</span>
+          </button>
 
-          <!-- Dropdown Menu -->
-          <div id="userDropdownMenu" style="display: none; position: absolute; right: 0; top: 120%; background: #161826; border: 1px solid var(--border-color); border-radius: 8px; width: 220px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 99999; padding: 0.5rem 0;">
-            <div style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.8rem; color: var(--text-muted);">
-              Signed in as<br><strong style="color: #fff;">${escapeHtml(user.email)}</strong>
+          <!-- User Widget (Matches Mockup) -->
+          <div class="nav-user-container" style="position: relative; display: flex; align-items: center; gap: 0.75rem;">
+            <div class="nav-user" onclick="toggleUserDropdown(event)" title="Account details">
+              <div class="user-details" style="text-align: right; line-height: 1.2;">
+                <span class="user-role-sublabel" style="display: block; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.7px; color: var(--text-muted); text-transform: uppercase;">${roleBadge}</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <span class="user-name" style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">${escapeHtml(displayName)}</span>
+                  <span class="user-role-tag" style="font-size: 0.75rem; color: var(--text-muted);">${displayRole}</span>
+                </div>
+              </div>
+              <div class="user-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--purple-primary), #4338ca); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; font-size: 0.8rem; margin-left: 4px;">
+                ${displayName.charAt(0).toUpperCase()}
+              </div>
             </div>
-            <a href="my-bookings.html" style="display: block; padding: 0.5rem 1rem; font-size: 0.85rem; color: var(--text-secondary);">🎟️ My Tickets</a>
-            <a href="organizer.html" style="display: block; padding: 0.5rem 1rem; font-size: 0.85rem; color: var(--text-secondary);">📊 Telemetry & Locks</a>
-            <div style="border-top: 1px solid var(--border-subtle); margin: 0.25rem 0;"></div>
-            <a href="login.html" style="display: block; padding: 0.5rem 1rem; font-size: 0.85rem; color: var(--text-secondary);">🔄 Switch Demo Role</a>
-            <button onclick="logout()" style="width: 100%; text-align: left; background: none; border: none; padding: 0.5rem 1rem; font-size: 0.85rem; color: #ef4444; cursor: pointer;">🚪 Sign Out</button>
+
+            <!-- Direct Logout Button (as seen in screenshot) -->
+            <button onclick="logout()" class="nav-logout-btn" title="Sign out" style="background: none; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.8rem; font-weight: 600; padding: 0.35rem 0.65rem; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s;">
+              Logout
+            </button>
+
+            <!-- Dropdown Menu for role switching -->
+            <div id="userDropdownMenu" style="display: none; position: absolute; right: 0; top: 120%; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; width: 220px; box-shadow: var(--shadow-md); z-index: 99999; padding: 0.5rem 0;">
+              <div style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.8rem; color: var(--text-muted);">
+                Signed in as<br><strong style="color: var(--text-primary);">${escapeHtml(user.email)}</strong>
+              </div>
+              <a href="my-bookings.html" style="display: block; padding: 0.5rem 1rem; font-size: 0.85rem; color: var(--text-secondary);">🎟️ My Tickets</a>
+              <a href="organizer.html" style="display: block; padding: 0.5rem 1rem; font-size: 0.85rem; color: var(--text-secondary);">📊 Telemetry & Locks</a>
+              <div style="border-top: 1px solid var(--border-subtle); margin: 0.25rem 0;"></div>
+              <a href="login.html" style="display: block; padding: 0.5rem 1rem; font-size: 0.85rem; color: var(--text-secondary);">🔄 Switch Demo Role</a>
+              <button onclick="logout()" style="width: 100%; text-align: left; background: none; border: none; padding: 0.5rem 1rem; font-size: 0.85rem; color: #ef4444; cursor: pointer;">🚪 Sign Out</button>
+            </div>
           </div>
         </div>
       </div>

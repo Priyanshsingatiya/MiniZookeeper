@@ -239,7 +239,7 @@
       <!-- Managed Events Table -->
       <div class="card" style="margin-bottom: 2rem; padding: 0; overflow: hidden;">
         <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-          <h2 style="font-size: 1.15rem; font-weight: 800; color: #fff;">🎪 Event Catalogs</h2>
+          <h2 style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary);">🎪 Event Catalogs</h2>
           <span id="eventsManagedCount" class="badge badge-purple">4 Events</span>
         </div>
 
@@ -271,7 +271,7 @@
   <div id="createEventModal" class="modal-overlay">
     <div class="modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
-        <h3 style="font-size: 1.25rem; font-weight: 800; color: #fff;">Create New Event</h3>
+        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary);">Create New Event</h3>
         <button onclick="closeCreateModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
       </div>
 
@@ -358,6 +358,7 @@
 
     // -----------------------------------------------------------------------
     // Canvas Latency Curve Drawing (Replicates Right Screenshot Area Chart)
+    // Supports both Dark Mode (Purple/Cyan) and Light Mode (Warm Orange/Amber)
     // -----------------------------------------------------------------------
     function drawLatencyChart() {
       const canvas = document.getElementById("latencyCanvas");
@@ -365,14 +366,15 @@
       const ctx = canvas.getContext("2d");
       const w = canvas.width;
       const h = canvas.height;
+      const isLight = document.documentElement.getAttribute("data-theme") === "light";
 
       ctx.clearRect(0, 0, w, h);
 
       // Background grid lines (y-axis: 0, 100ms, 200ms, 300ms, 400ms, 500ms)
-      ctx.strokeStyle = "#1a1d2e";
+      ctx.strokeStyle = isLight ? "#e5dac9" : "#1a1d2e";
       ctx.lineWidth = 1;
       ctx.font = "10px sans-serif";
-      ctx.fillStyle = "#64748b";
+      ctx.fillStyle = isLight ? "#78716c" : "#64748b";
 
       const yLevels = [
         { label: "500ms", y: 30 },
@@ -404,16 +406,21 @@
         ctx.fillText(t.label, t.x, 215);
       });
 
-      // Curve 1 (Purple Wave)
+      // Curve 1 (Primary Wave: Orange in Light Theme, Purple in Dark)
       const purplePoints = [
         [40, 180], [90, 150], [130, 140], [180, 160], [210, 150],
         [240, 175], [290, 80], [330, 50], [370, 130], [420, 140], [480, 120]
       ];
 
-      // Draw Purple Gradient Fill
+      // Draw Gradient Fill 1
       const pGrad = ctx.createLinearGradient(0, 40, 0, 200);
-      pGrad.addColorStop(0, "rgba(139, 92, 246, 0.4)");
-      pGrad.addColorStop(1, "rgba(139, 92, 246, 0.0)");
+      if (isLight) {
+        pGrad.addColorStop(0, "rgba(234, 88, 12, 0.45)");
+        pGrad.addColorStop(1, "rgba(234, 88, 12, 0.0)");
+      } else {
+        pGrad.addColorStop(0, "rgba(139, 92, 246, 0.4)");
+        pGrad.addColorStop(1, "rgba(139, 92, 246, 0.0)");
+      }
 
       ctx.beginPath();
       ctx.moveTo(purplePoints[0][0], 200);
@@ -429,7 +436,7 @@
       ctx.fillStyle = pGrad;
       ctx.fill();
 
-      // Draw Purple Stroke
+      // Draw Stroke 1
       ctx.beginPath();
       ctx.moveTo(purplePoints[0][0], purplePoints[0][1]);
       for (let i = 1; i < purplePoints.length; i++) {
@@ -437,19 +444,24 @@
         const yc = (purplePoints[i][1] + purplePoints[i - 1][1]) / 2;
         ctx.quadraticCurveTo(purplePoints[i - 1][0], purplePoints[i - 1][1], xc, yc);
       }
-      ctx.strokeStyle = "#a855f7";
+      ctx.strokeStyle = isLight ? "#ea580c" : "#a855f7";
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
-      // Curve 2 (Cyan/Blue Wave)
+      // Curve 2 (Secondary Wave: Warm Amber in Light Theme, Cyan in Dark)
       const cyanPoints = [
         [40, 195], [80, 185], [120, 150], [170, 135], [220, 145],
         [260, 160], [300, 110], [340, 90], [380, 155], [430, 165], [480, 150]
       ];
 
       const cGrad = ctx.createLinearGradient(0, 90, 0, 200);
-      cGrad.addColorStop(0, "rgba(6, 182, 212, 0.3)");
-      cGrad.addColorStop(1, "rgba(6, 182, 212, 0.0)");
+      if (isLight) {
+        cGrad.addColorStop(0, "rgba(217, 119, 6, 0.35)");
+        cGrad.addColorStop(1, "rgba(217, 119, 6, 0.0)");
+      } else {
+        cGrad.addColorStop(0, "rgba(6, 182, 212, 0.3)");
+        cGrad.addColorStop(1, "rgba(6, 182, 212, 0.0)");
+      }
 
       ctx.beginPath();
       ctx.moveTo(cyanPoints[0][0], 200);
@@ -472,19 +484,24 @@
         const yc = (cyanPoints[i][1] + cyanPoints[i - 1][1]) / 2;
         ctx.quadraticCurveTo(cyanPoints[i - 1][0], cyanPoints[i - 1][1], xc, yc);
       }
-      ctx.strokeStyle = "#38bdf8";
+      ctx.strokeStyle = isLight ? "#d97706" : "#38bdf8";
       ctx.lineWidth = 2;
       ctx.stroke();
 
       // High-point tooltip indicator dot
       ctx.beginPath();
       ctx.arc(330, 50, 4, 0, Math.PI * 2);
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = isLight ? "#ea580c" : "#ffffff";
       ctx.fill();
-      ctx.strokeStyle = "#a855f7";
+      ctx.strokeStyle = isLight ? "#c2410c" : "#a855f7";
       ctx.lineWidth = 2;
       ctx.stroke();
     }
+
+    // Redraw canvas on theme change
+    window.addEventListener("themechanged", () => {
+      drawLatencyChart();
+    });
 
     // -----------------------------------------------------------------------
     // Terminal Log Streaming
@@ -537,7 +554,7 @@
 
           tbody.innerHTML = events.map(e => `
             <tr>
-              <td style="font-weight: 700; color: #fff;">${escapeHtml(e.title)}</td>
+              <td style="font-weight: 700; color: var(--text-primary);">${escapeHtml(e.title)}</td>
               <td>${escapeHtml(e.venue)}</td>
               <td style="font-size: 0.85rem; color: var(--text-muted);">${formatDate(e.event_date)}</td>
               <td style="font-weight: 800; color: var(--purple-primary);">$${parseFloat(e.ticket_price).toFixed(2)}</td>
