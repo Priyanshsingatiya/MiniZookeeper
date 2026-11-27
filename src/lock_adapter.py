@@ -253,7 +253,7 @@ class CreateEventRequest(BaseModel):
 
 
 class CreateReservationRequest(BaseModel):
-    user_id: int = Field(..., description="User ID making the booking")
+    user_id: Optional[int] = Field(default=None, description="User ID making the booking")
     event_id: int = Field(..., description="Event ID")
     seat_ids: list = Field(..., min_length=1, description="List of seat IDs")
     reservation_duration_minutes: Optional[int] = Field(default=5, description="Minutes to hold seats")
@@ -759,7 +759,11 @@ if FASTAPI_AVAILABLE:
     # -------------------------------------------------------------------------
 
     @app.post("/api/bookings/reserve")
-    def endpoint_reserve_seats(payload: CreateReservationRequest, db: Session = Depends(get_db)):
+    def endpoint_reserve_seats(
+        payload: CreateReservationRequest,
+        db: Session = Depends(get_db),
+        authorization: Optional[str] = Header(None)
+    ):
         """
         RESERVE SEATS ENDPOINT (PHASE 5 CORE LOCKING):
 
@@ -774,10 +778,30 @@ if FASTAPI_AVAILABLE:
         """
         import uuid
 
+        # Resolve effective user ID
+        effective_user_id = payload.user_id
+        if not effective_user_id and authorization and authorization.startswith("Bearer "):
+            try:
+                token = authorization.split(" ")[1]
+                claims = decode_access_token(token)
+                effective_user_id = int(claims.get("sub"))
+            except Exception:
+                pass
+
+        if not effective_user_id:
+            # Fall back to default customer user account
+            default_user = create_or_get_user(
+                db=db,
+                email="customer@example.com",
+                name="Alex Customer",
+                role="CUSTOMER"
+            )
+            effective_user_id = default_user.id
+
         # Step 1: Sort seat IDs to prevent deadlocks (e.g. User 1 picks A, B; User 2 picks B, A)
         sorted_seat_ids = sorted(payload.seat_ids)
         acquired_locks = []
-        lock_client_id = f"cust_{payload.user_id}_{uuid.uuid4().hex[:6]}"
+        lock_client_id = f"cust_{effective_user_id}_{uuid.uuid4().hex[:6]}"
 
         try:
             # Step 2: Acquire Mini ZooKeeper OS lock for each seat
@@ -799,13 +823,16 @@ if FASTAPI_AVAILABLE:
             # Step 3: Inside the lock: Check DB and mark as RESERVED (5-min hold lease)
             result = create_pending_reservation(
                 db=db,
-                user_id=payload.user_id,
+                user_id=effective_user_id,
                 event_id=payload.event_id,
                 seat_ids=payload.seat_ids,
                 reservation_duration_minutes=payload.reservation_duration_minutes or 5
             )
             if not result.get("success"):
                 raise HTTPException(status_code=400, detail=result.get("message"))
+            # Universal compatibility for booking ID
+            if "booking_id" in result:
+                result["id"] = result["booking_id"]
             return result
         finally:
             # Step 4: ALWAYS release all OS locks immediately so other requests are not blocked

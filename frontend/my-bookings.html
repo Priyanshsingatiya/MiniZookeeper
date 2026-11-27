@@ -130,9 +130,11 @@
       const container = document.getElementById("ticketsContainer");
 
       try {
-        const res = await authFetch(`/api/users/${user.id}/bookings`);
-        if (res.ok) {
-          userBookings = await res.json();
+        if (user && user.id) {
+          const res = await authFetch(`/api/users/${user.id}/bookings`);
+          if (res.ok) {
+            userBookings = await res.json();
+          }
         }
 
         // If no user bookings yet, populate sample/fallback tickets matching the screenshot

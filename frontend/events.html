@@ -453,9 +453,11 @@
       bookBtn.innerText = "Locking with Mini ZooKeeper...";
 
       try {
+        const user = getUser();
         const payload = {
           event_id: activeEvent.id,
-          seat_ids: Array.from(selectedSeatIds)
+          seat_ids: Array.from(selectedSeatIds),
+          user_id: user ? user.id : 1
         };
 
         const res = await authFetch("/api/bookings/reserve", {
@@ -465,12 +467,23 @@
 
         const data = await res.json();
         if (!res.ok) {
-          throw new Error(data.detail || "Lock acquisition failed. Seat is busy.");
+          let errMsg = "Lock acquisition failed. Seat is busy.";
+          if (data) {
+            if (typeof data.detail === "string") {
+              errMsg = data.detail;
+            } else if (Array.isArray(data.detail) && data.detail.length > 0) {
+              errMsg = data.detail.map(d => d.msg || (d.loc ? d.loc.join('.') : '')).join(", ");
+            } else if (data.message) {
+              errMsg = data.message;
+            }
+          }
+          throw new Error(errMsg);
         }
 
+        const bookingId = data.booking_id || data.id;
         showToast("Seats locked! Proceeding to checkout...", "success");
         setTimeout(() => {
-          window.location.href = `checkout.html?booking_id=${data.id}`;
+          window.location.href = `checkout.html?booking_id=${bookingId}`;
         }, 600);
       } catch (err) {
         showToast(err.message, "danger");

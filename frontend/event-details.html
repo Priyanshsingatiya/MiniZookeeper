@@ -224,7 +224,7 @@
         const res = await authFetch("/api/bookings/reserve", {
           method: "POST",
           body: JSON.stringify({
-            user_id: user.id,
+            user_id: user ? user.id : 1,
             event_id: eventId,
             seat_ids: seatIdsArray,
             reservation_duration_minutes: 5
@@ -234,12 +234,23 @@
         const data = await res.json();
 
         if (res.ok && data.success) {
+          const bookingId = data.booking_id || data.id;
           showToast("Seats locked and reserved for 5 minutes! Proceeding to checkout...", "success");
           setTimeout(() => {
-            window.location.href = `checkout.html?booking_id=${data.booking_id}`;
+            window.location.href = `checkout.html?booking_id=${bookingId}`;
           }, 800);
         } else {
-          showToast(data.detail || data.message || "Reservation failed.", "danger");
+          let errMsg = "Reservation failed.";
+          if (data) {
+            if (typeof data.detail === "string") {
+              errMsg = data.detail;
+            } else if (Array.isArray(data.detail) && data.detail.length > 0) {
+              errMsg = data.detail.map(d => d.msg || (d.loc ? d.loc.join('.') : '')).join(", ");
+            } else if (data.message) {
+              errMsg = data.message;
+            }
+          }
+          showToast(errMsg, "danger");
           reserveBtn.disabled = false;
           reserveBtn.innerText = "🔒 Reserve & Proceed to Pay →";
           loadEventAndSeats();
